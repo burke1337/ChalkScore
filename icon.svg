@@ -1,0 +1,32 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ChalkScore">
+  <title>ChalkScore</title>
+  <defs>
+    <linearGradient id="cs-face" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2A63A3"/>
+      <stop offset="1" stop-color="#123F73"/>
+    </linearGradient>
+    <radialGradient id="cs-cup" cx="50%" cy="44%" r="58%">
+      <stop offset="0" stop-color="#0D2F5C"/>
+      <stop offset="0.72" stop-color="#164478"/>
+      <stop offset="1" stop-color="#1D5391"/>
+    </radialGradient>
+  </defs>
+
+  <!-- the chalk cube, seen from above -->
+  <rect x="3" y="3" width="58" height="58" rx="9" fill="url(#cs-face)"/>
+  <rect x="3.9" y="3.9" width="56.2" height="56.2" rx="8.2" fill="none"
+        stroke="#4783C4" stroke-opacity=".5" stroke-width="1.6"/>
+
+  <!-- the cup worn into the middle by the cue tip -->
+  <circle cx="32" cy="32" r="20" fill="url(#cs-cup)"/>
+  <circle cx="32" cy="32" r="20" fill="none" stroke="#0A2951" stroke-opacity=".55" stroke-width="1.1"/>
+
+  <!-- a tally of five, the way a rack gets counted on the rail -->
+  <g stroke="#FFFFFF" stroke-width="3" stroke-linecap="round">
+    <path d="M20 21V43"/>
+    <path d="M28 21V43"/>
+    <path d="M36 21V43"/>
+    <path d="M44 21V43"/>
+    <path d="M16 43L48 21"/>
+  </g>
+</svg>

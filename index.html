@@ -1,0 +1,1747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A2418">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ChalkScore">
+<title>ChalkScore</title>
+<meta name="description" content="Pool scorekeeping for 8-ball, 9-ball and 10-ball — singles, doubles and APA team nights. Works offline.">
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{
+  --ink:#0A2418; --panel:#0F3324; --panel2:#15422F; --line:#245C43;
+  --felt:#1A5C42; --chalk:#8CC0EC; --chalk-dim:#5E8FBB;
+  --ivory:#F1EEE7; --mute:#9BB8A8; --gold:#E3B052;
+  --win:#7FE0A6; --loss:#E07A70; --sd:#C46BD6;
+  --disp:'Barlow Condensed',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --body:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  --data:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;overscroll-behavior-y:contain}
+body{background:var(--ink);color:var(--ivory);font-family:var(--body);font-size:15px;line-height:1.4;
+  -webkit-text-size-adjust:100%;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+body.sd{background:#2A1633}
+button,input{font:inherit;color:inherit}
+button{background:none;border:none;padding:0;cursor:pointer}
+.wrap{max-width:620px;margin:0 auto}
+:focus-visible{outline:2px solid var(--chalk);outline-offset:2px}
+
+.top{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--panel2);
+  border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+body.sd .top{background:#3A1F46;border-color:var(--sd)}
+.top .mark{display:flex;align-items:center;gap:9px;min-width:0}
+.top h1{margin:0;font-family:var(--disp);font-size:19px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;white-space:nowrap}
+.top h1 span{color:var(--chalk)}
+.top .ctx{font-family:var(--data);font-size:10px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--mute);border-left:1px solid var(--line);padding-left:10px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top .sp{flex:1}
+.tbtn{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-family:var(--data);
+  font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);white-space:nowrap}
+.tbtn:active{background:var(--felt)}
+.tbtn.warn{color:var(--loss);border-color:rgba(224,122,112,.4)}
+
+.hero{padding:24px 16px 4px}
+.hero h2{font-family:var(--disp);font-size:30px;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;margin:0 0 6px;line-height:1}
+.hero p{margin:0;color:var(--mute);font-size:13.5px}
+.fmt{display:flex;gap:7px;padding:16px 16px 0}
+.fmt button{flex:1;border:1px solid var(--line);border-radius:9px;padding:11px 6px;
+  font-family:var(--data);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--mute)}
+.fmt button[aria-pressed="true"]{background:var(--chalk);border-color:var(--chalk);color:#08202F;font-weight:700}
+.tiles{display:grid;gap:11px;padding:16px}
+.tilewrap{position:relative}
+.ttabs{display:flex;gap:2px;background:var(--panel2);border-bottom:1px solid var(--line);
+  position:sticky;top:53px;z-index:4;overflow-x:auto}
+.ttabs button{flex:1 0 auto;min-width:74px;border:0;border-bottom:2px solid transparent;background:none;
+  padding:11px 12px;font-family:var(--data);font-size:10.5px;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--mute);white-space:nowrap}
+.ttabs button[aria-pressed="true"]{color:var(--ivory);border-bottom-color:var(--chalk)}
+.ttabs button .dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-left:5px;vertical-align:1px}
+.ttabs button .dot.done{background:var(--win)}
+.ttabs button .dot.live{background:var(--gold)}
+.tile{display:block;width:100%;text-align:left;border:1px solid var(--line);border-radius:12px;
+  padding:15px;background:var(--panel)}
+.tile:active{background:var(--panel2)}
+.tile .nm{font-family:var(--disp);font-size:24px;font-weight:700;letter-spacing:.07em;
+  text-transform:uppercase;line-height:1}
+.tile .sub{font-family:var(--data);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--chalk);margin-top:5px}
+.tile .desc{color:var(--mute);font-size:12.5px;margin-top:8px;padding-right:74px}
+.tile .live{position:absolute;top:13px;right:13px;font-family:var(--data);font-size:9.5px;
+  letter-spacing:.07em;text-transform:uppercase;padding:3px 7px;border-radius:5px;
+  background:var(--gold);color:#22160A;font-weight:700}
+.tile.has .nm{color:var(--gold)}
+.clr{position:absolute;right:11px;bottom:11px;border:1px solid var(--line);border-radius:7px;
+  padding:6px 11px;font-family:var(--data);font-size:10px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--mute);background:var(--ink)}
+.clr:active{background:var(--felt);color:var(--loss)}
+.note{padding:0 16px 26px;color:var(--mute);font-size:12px}
+.soon{border:1px dashed var(--line);border-radius:12px;padding:15px;margin:16px;color:var(--mute);font-size:13px}
+.soon b{display:block;font-family:var(--disp);font-size:20px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ivory);margin-bottom:5px}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:11px;margin:14px;padding:14px}
+.card h3{font-family:var(--disp);font-size:17px;letter-spacing:.09em;text-transform:uppercase;
+  margin:0 0 11px;font-weight:600}
+.f{display:block;margin-bottom:11px}
+.f>span{display:block;font-family:var(--data);font-size:10px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--mute);margin-bottom:4px}
+.in{width:100%;background:var(--ink);border:1px solid var(--line);color:var(--ivory);
+  padding:9px 10px;border-radius:8px;font-size:15px}
+.in:focus{border-color:var(--chalk);outline:none}
+.in:disabled{opacity:.55;color:var(--mute)}
+.in.num{font-family:var(--data);text-align:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{flex:1 1 auto;min-width:86px;border:1px solid var(--line);border-radius:8px;padding:9px 7px;
+  font-family:var(--data);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.seg button[aria-pressed="true"]{background:var(--chalk);border-color:var(--chalk);color:#08202F;font-weight:700}
+.seg button:disabled{opacity:.35}
+.hint{color:var(--mute);font-size:12px;margin:8px 0 0}
+.side{border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--ink);margin-bottom:11px}
+.side .lab{font-family:var(--data);font-size:10px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--chalk);margin-bottom:9px}
+.side .comb{font-family:var(--data);font-size:11px;color:var(--gold);margin-top:2px}
+.go{display:block;width:100%;border:1px solid var(--chalk);border-radius:10px;
+  padding:14px;background:var(--chalk);color:#08202F;font-weight:700;font-size:15px}
+
+.brk{margin:14px 14px 0;padding:11px 13px;border:1px solid var(--gold);border-radius:10px;
+  background:rgba(227,176,82,.13);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.brk .who{font-family:var(--disp);font-size:21px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--gold);line-height:1}
+.brk .lab{font-family:var(--data);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--mute)}
+.brk .nxt{margin-left:auto;text-align:right;font-family:var(--data);font-size:10.5px;color:var(--mute)}
+.brk .nxt b{color:var(--ivory);font-weight:600}
+
+.pp{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:14px}
+.pl{background:var(--panel);padding:13px 12px;position:relative}
+.pl.turn{background:var(--panel2);box-shadow:inset 0 0 0 2px var(--chalk)}
+.pl.won{box-shadow:inset 0 0 0 2px var(--win)}
+.pl .who{font-size:15px;font-weight:600;line-height:1.25;padding-right:52px}
+.pl .sl{font-family:var(--data);font-size:10px;color:var(--chalk-dim);letter-spacing:.06em;
+  text-transform:uppercase;margin-top:3px;min-height:14px}
+.pl .big{font-family:var(--data);font-size:42px;font-weight:700;line-height:1;letter-spacing:-.03em;margin-top:8px}
+.pl .of{font-family:var(--data);font-size:13px;color:var(--mute)}
+.pl .bar{height:5px;background:var(--ink);border-radius:3px;margin-top:9px;overflow:hidden}
+.pl .bar i{display:block;height:100%;background:var(--chalk);transition:width .18s}
+.pl.won .bar i{background:var(--win)}
+.pl .togo{font-family:var(--data);font-size:11px;color:var(--mute);margin-top:6px}
+.pl.won .togo{color:var(--win)}
+.pl .mp{font-family:var(--data);font-size:11px;color:var(--gold);margin-top:5px}
+.pl .st{font-family:var(--data);font-size:10px;color:var(--mute);margin-top:6px}
+.pl .st b{color:var(--gold)}
+.pl .flag{position:absolute;top:11px;right:11px;font-family:var(--data);font-size:9px;font-weight:700;
+  letter-spacing:.07em;text-transform:uppercase;padding:2px 6px;border-radius:4px;
+  background:var(--gold);color:#22160A}
+.pl.won .flag{background:var(--win);color:#06210F}
+
+.acts{display:grid;gap:10px;padding:14px}
+.acts.two{grid-template-columns:1fr 1fr}
+.acts+.acts{padding-top:0}
+.big-btn{border:1px solid var(--line);border-radius:12px;padding:16px 12px;background:var(--panel);
+  font-weight:700;font-size:16px;line-height:1.2;text-align:center}
+.big-btn:active{background:var(--felt)}
+.big-btn small{display:block;font-family:var(--data);font-size:10px;font-weight:400;color:var(--mute);
+  text-transform:uppercase;letter-spacing:.07em;margin-top:5px}
+.big-btn.over{background:var(--chalk);border-color:var(--chalk);color:#08202F}
+.big-btn.over small{color:rgba(8,32,47,.72)}
+
+.sect{padding:14px 14px 0}
+.sect h3{margin:0 0 4px;font-family:var(--data);font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--mute);font-weight:400}
+.sect h3 em{font-style:normal;color:var(--sd);font-weight:700}
+.sect .hint{margin:0 0 11px}
+.onbreak{display:block;width:calc(100% - 28px);margin:0 14px 12px;border:1px solid var(--gold);
+  border-radius:9px;padding:10px;background:rgba(227,176,82,.15);font-family:var(--data);
+  font-size:11px;color:#FFE7B0}
+.balls{display:grid;grid-template-columns:repeat(5,1fr);gap:9px}
+.ball{aspect-ratio:1;border-radius:50%;position:relative;background:#F7F3EA;color:#1A1A1A;
+  font-family:var(--data);font-size:19px;font-weight:700;display:grid;place-items:center;
+  border:2px solid transparent;transition:transform .1s,opacity .12s;
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.55)}
+.ball:active{transform:scale(.94)}
+.ball .stripe{position:absolute;left:0;right:0;top:26%;bottom:26%;background:var(--c,#E3B052);z-index:0}
+.ball .n{position:relative;z-index:1;background:#F7F3EA;border-radius:50%;width:58%;height:58%;
+  display:grid;place-items:center}
+.ball.solid .n{background:transparent;color:#fff}
+.ball.solid{color:#fff}
+.ball[data-o="1"]{border-color:var(--chalk);outline:3px solid rgba(140,192,236,.45)}
+.ball[data-o="2"]{border-color:var(--gold);outline:3px solid rgba(227,176,82,.45)}
+.ball[data-o="d"]{opacity:.3;border-color:var(--loss);outline:2px solid rgba(224,122,112,.45)}
+.ball .tag{position:absolute;bottom:-3px;left:50%;transform:translateX(-50%);font-family:var(--data);
+  font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;white-space:nowrap}
+.ball[data-o="1"] .tag{background:var(--chalk);color:#08202F}
+.ball[data-o="2"] .tag{background:var(--gold);color:#22160A}
+.ball[data-o="d"] .tag{background:var(--loss);color:#2A0E08}
+.rbar{display:flex;justify-content:space-between;gap:10px;padding:12px 14px 0;
+  font-family:var(--data);font-size:11.5px;color:var(--mute)}
+.rbar b{color:var(--ivory)}
+.flash{margin:12px 14px 0;padding:10px 12px;border-radius:10px;font-family:var(--data);font-size:11.5px;
+  border:1px solid var(--gold);background:rgba(227,176,82,.14);color:#FFE7B0}
+.newrack{display:block;width:calc(100% - 28px);margin:12px 14px 0;border:1px solid var(--line);
+  border-radius:10px;padding:14px;background:var(--panel);font-weight:700;font-size:15px}
+.newrack:disabled{opacity:.35}
+.newrack.ready{background:var(--chalk);border-color:var(--chalk);color:#08202F}
+.sdnote{margin:12px 14px 0;padding:9px 11px;border-radius:10px;border:1px solid var(--sd);
+  background:rgba(196,107,214,.16);font-family:var(--data);font-size:11px;color:#F0D7F5}
+
+.ctrs{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px}
+.ctrs.one{grid-template-columns:1fr}
+.ctr{border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;background:var(--panel)}
+.ctr .lab{font-family:var(--data);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--mute)}
+.ctr .val{font-family:var(--data);font-size:23px;font-weight:700;margin:4px 0 3px}
+.ctr .sub{font-family:var(--data);font-size:9.5px;color:var(--mute);margin-bottom:7px}
+.ctr .pm{display:flex;gap:7px}
+.ctr .pm button{flex:1;border:1px solid var(--line);border-radius:7px;padding:6px 0;
+  font-family:var(--data);font-size:16px;line-height:1}
+.ctr .pm button:active{background:var(--felt)}
+
+.log{padding:4px 14px 8px}
+.log h3{margin:0 0 7px;font-family:var(--data);font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--mute);font-weight:400}
+.lg{display:flex;align-items:center;gap:9px;padding:7px 0;border-top:1px dotted rgba(36,92,67,.7);
+  font-family:var(--data);font-size:12px}
+.lg .i{color:var(--mute);width:22px;flex:0 0 auto}
+.lg .a{color:var(--chalk);font-weight:700}
+.lg .b{color:var(--gold);font-weight:700}
+.lg .how{color:var(--mute);font-size:10.5px}
+.lg .br{margin-left:auto;font-size:10px;color:var(--mute);flex:0 0 auto;text-align:right}
+.lg .d{color:var(--loss)}
+.lg .void{color:var(--sd)}
+.badge{font-size:9px;font-weight:700;border-radius:4px;padding:1px 5px;letter-spacing:.05em}
+.badge.snap{background:var(--gold);color:#22160A}
+.badge.bnr{background:var(--win);color:#06210F}
+.badge.brk{background:var(--chalk);color:#08202F}
+
+.banner{margin:14px;padding:15px;border-radius:12px;border:1px solid var(--win);
+  background:linear-gradient(135deg,rgba(127,224,166,.2),rgba(127,224,166,.05))}
+.banner b{display:block;font-family:var(--disp);font-size:24px;letter-spacing:.05em;
+  text-transform:uppercase;margin-bottom:4px}
+.banner .s{font-family:var(--data);font-size:12px;color:var(--mute)}
+.banner .pts{font-family:var(--data);font-size:30px;font-weight:700;margin:9px 0 2px;color:var(--gold)}
+.banner .pts small{display:block;font-size:10px;font-weight:400;color:var(--mute);
+  text-transform:uppercase;letter-spacing:.07em;margin-top:3px}
+
+.foot{padding:18px 16px 34px;font-family:var(--data);font-size:10.5px;line-height:1.7;
+  color:var(--mute);border-top:1px solid var(--line);margin-top:16px}
+
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--ivory);
+  padding:0;width:min(430px,93vw)}
+dialog::backdrop{background:rgba(4,16,10,.82)}
+.dlg{padding:17px}
+.dlg h3{margin:0 0 6px;font-family:var(--disp);font-size:19px;letter-spacing:.07em;text-transform:uppercase}
+.dlg p{margin:0 0 13px;font-size:13px;color:var(--mute)}
+.dacts{display:flex;gap:9px;margin-top:6px}
+.dacts button{flex:1;border:1px solid var(--line);border-radius:9px;padding:12px;font-weight:600}
+.dacts .danger{background:var(--loss);border-color:var(--loss);color:#2A0E08}
+.olist{display:grid;gap:8px;max-height:58vh;overflow:auto}
+.olist button{text-align:left;border:1px solid var(--line);border-radius:10px;padding:12px 13px;
+  background:var(--ink);font-size:14.5px;font-weight:600}
+.olist button:active{background:var(--felt)}
+.olist button small{display:block;font-family:var(--data);font-size:10px;font-weight:400;
+  text-transform:uppercase;letter-spacing:.06em;margin-top:4px;color:var(--mute)}
+.olist button.w{border-color:rgba(127,224,166,.5)}
+.olist button.w small{color:var(--win)}
+.olist button.l{border-color:rgba(224,122,112,.45)}
+.olist button.l small{color:var(--loss)}
+.olist button.v{border-color:rgba(196,107,214,.5)}
+.olist button.v small{color:var(--sd)}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<dialog id="ask"><div class="dlg">
+  <h3 id="askT">Are you sure?</h3><p id="askB"></p>
+  <div class="dacts"><button id="askN">Cancel</button><button class="danger" id="askY">Confirm</button></div>
+</div></dialog>
+
+<dialog id="modeDlg"><div class="dlg">
+  <h3 id="modeT">How much detail?</h3>
+  <p>Pick this first — league fills the races off the chart as you enter skill levels.</p>
+  <div class="olist" id="modeList"></div>
+</div></dialog>
+
+<dialog id="undoDlg"><div class="dlg">
+  <h3>Step back</h3>
+  <p>Pick the action to undo. Everything after it goes too.</p>
+  <div class="olist" id="undoList"></div>
+  <div class="dacts" style="margin-top:12px"><button id="undoN">Cancel</button></div>
+</div></dialog>
+
+<dialog id="over"><div class="dlg">
+  <h3>How did it end?</h3><p id="overP"></p>
+  <div class="olist" id="overList"></div>
+  <div class="dacts" style="margin-top:12px"><button id="overN">Cancel</button></div>
+</div></dialog>
+
+<script>
+/* ============================================================
+   ChalkScore — pool scorekeeping
+   Formats: singles, doubles (teams next). Games: 8-ball, 9-ball racks,
+   10-ball, 9-ball points. Modes: simplified, detailed, league.
+   ============================================================ */
+
+const GAMES = {
+  "8ball":   {label:"8-Ball",  sub:"race to games", kind:"rack",   league:true,
+              desc:"Tap who won, or record how the game ended."},
+  "9ball":   {label:"9-Ball",  sub:"race to racks", kind:"rack",   league:false,
+              desc:"Tap who won the rack."},
+  "10ball":  {label:"10-Ball", sub:"race to racks", kind:"rack",   league:false,
+              desc:"Tap who won the rack."},
+  "9points": {label:"9-Ball",  sub:"points race",   kind:"points", league:true,
+              desc:"Ball by ball. The 9 is worth two, a rack is ten."},
+};
+const MODES   = {simplified:"Simplified", detailed:"Detailed", league:"League"};
+const FORMATS = {singles:"Singles", doubles:"Doubles", teams:"Teams"};
+const BREAK_RULES = {winner:"Winner breaks", alternate:"Alternate breaks", loser:"Loser breaks"};
+
+const PTS_CHART   = {1:14,2:19,3:25,4:31,5:38,6:46,7:55,8:65,9:75};
+const PTS_DOUBLES = {2:14,3:17,4:19,5:22,6:25,7:28,8:31,9:35,10:38,11:42,
+                     12:46,13:51,14:55,15:60,16:65,17:70,18:75};
+const MP_MAX = {
+  1:[ 2, 3, 4, 6, 7, 8,10,11,13], 2:[ 3, 5, 7, 8,10,12,14,16,18],
+  3:[ 4, 6, 9,11,14,16,19,21,24], 4:[ 5, 8,11,14,18,21,24,27,30],
+  5:[ 6,10,14,18,22,26,29,33,37], 6:[ 8,12,17,22,27,31,36,40,45],
+  7:[10,15,21,26,32,37,43,49,54], 8:[13,19,26,32,39,45,52,58,64],
+  9:[17,24,31,38,46,53,60,67,74]
+};
+const BALL_COLORS={1:"#E3B052",2:"#3F6FB5",3:"#D5453B",4:"#7B4FA8",5:"#E08A3C",6:"#3E8E5A",7:"#8C4A34",8:"#111111",9:"#E3B052"};
+const SOLID=new Set([1,2,3,4,5,6,7,8]);
+
+/* APA 8-ball games must win: base is your level minus one, facing a 2 costs one
+   more, facing a 7 saves one, floor 2 ceiling 7. A 2 always needs 2; a 7 needs 5
+   except versus a 3 or a 2, making up what the floor hands those two. */
+function apa8(you,opp){
+  if(you===2) return 2;
+  if(you===7) return opp===2?7:opp===3?6:5;
+  let g=you-1;
+  if(opp===2) g+=1;
+  if(opp===7) g-=1;
+  return Math.max(2,Math.min(7,g));
+}
+/* 8-ball match points read straight off the score */
+function mpRack(loserScore,loserGoal){
+  if(loserScore<=0) return {win:3,lose:0};
+  if(loserScore>=loserGoal-1) return {win:2,lose:1};
+  return {win:2,lose:0};
+}
+function mpPoints(loserSL,loserPts){
+  const row=MP_MAX[loserSL]||MP_MAX[5];
+  for(let i=0;i<row.length;i++) if(loserPts<=row[i]) return {win:20-i,lose:i};
+  return {win:12,lose:8};
+}
+
+/* How an 8-ball game ends. A loss hands the game to the opponent and ends the
+   offender's turn, which scores an inning when it was the second player. The
+   on-the-break outcomes are not gated on zero innings — a lost break and a
+   rerack can genuinely produce a one-inning 8 on the break. */
+const OUTCOMES=[
+  {k:"made8", label:"Made the 8",                   note:"win",                    win:"self", offBreak:true},
+  {k:"bnr",   label:"8 break and run",              note:"win · break and run",    win:"self", stat:"bnr", onBreak:true},
+  {k:"8ob",   label:"8 on the break",               note:"win · on the snap",      win:"self", stat:"snap", onBreak:true},
+  {k:"oot",   label:"8 out of turn",                note:"loss · turn passes",     win:"opp",  pass:true},
+  {k:"scr",   label:"Made the 8 and scratched",     note:"loss · turn passes",     win:"opp",  pass:true},
+  {k:"8obs",  label:"8 on the break and scratched", note:"loss · turn passes",     win:"opp",  pass:true, onBreak:true},
+  {k:"stale", label:"Stalemate — rerack",           note:"no game · same breaker", void:true},
+];
+const HOW={made8:"made the 8", bnr:"break and run", "8ob":"8 on the break",
+  oot:"8 out of turn", scr:"8 and scratch", "8obs":"8 on break, scratch"};
+
+/* ---------- storage ---------- */
+const store=(()=>{
+  let ok=true; try{localStorage.setItem("_t","1");localStorage.removeItem("_t");}catch(e){ok=false;}
+  const mem={};
+  return{
+    get(k,d){try{const v=ok?localStorage.getItem(k):mem[k];return v==null?d:JSON.parse(v);}catch(e){return d;}},
+    set(k,v){try{ok?localStorage.setItem(k,JSON.stringify(v)):(mem[k]=JSON.stringify(v));}catch(e){}},
+    del(k){try{ok?localStorage.removeItem(k):delete mem[k];}catch(e){}}
+  };
+})();
+const key=(f,g)=>"chalkscore:"+f+":"+g;
+
+function blank(fmt,game){
+  return {
+    format:fmt, game, mode:"simplified", modeChosen:false, stage:"setup",
+    names:[["",""],["",""]], sl:[[5,5],[5,5]], goal:[5,5],
+    breakRule:"winner", firstBreaker:0, sd:false,
+    log:[], owners:{}, autoDead:[], turn:0, rackTurns:0,
+    onBreak:true, breakBalls:[], rackInnings:0, defense:[0,0],
+    stats:{snap:[0,0], bnr:[0,0], bestBreak:[0,0]},
+    started:Date.now()
+  };
+}
+
+let S=null, history=[];
+const $=s=>document.querySelector(s);
+const isPts=()=>GAMES[S.game].kind==="points";
+const isDbl=()=>S.format==="doubles";
+const hasLeague=()=>!!GAMES[S.game].league;
+const league=()=>S.mode==="league" && hasLeague();
+const detailed=()=>S.mode!=="simplified";
+const mult=()=>S.sd?2:1;
+const ptsFor=b=>(b===9?2:1)*mult();
+const rackTotal=()=>10*mult();
+
+function nm(i){
+  if(!isDbl()) return S.names[i][0] || ("Player "+(i+1));
+  const a=S.names[i][0]||("Player "+(i*2+1)), b=S.names[i][1]||("Player "+(i*2+2));
+  return a+" / "+b;
+}
+function shortNm(i){
+  const base=isDbl() ? (S.names[i][0]||("P"+(i*2+1))) : (S.names[i][0]||("Player "+(i+1)));
+  return base.split(" ")[0].slice(0,9);
+}
+
+/* A side's effective level. Doubles averages rounded up for the 8-ball grid and
+   combines for the 9-ball points chart. */
+function sideSL(i){
+  const a=+S.sl[i][0]||0, b=+S.sl[i][1]||0;
+  if(!isDbl()) return a;
+  return isPts() ? a+b : Math.ceil((a+b)/2);
+}
+/* APA skill levels: 8-ball runs 2 to 7, 9-ball 1 to 9. */
+function slRange(){ return S.game==="8ball" ? [2,7] : [1,9]; }
+function clampSL(){
+  const [lo,hi]=slRange();
+  S.sl=S.sl.map(pair=>pair.map(v=>Math.max(lo,Math.min(hi,+v||lo))));
+}
+
+function chartRaces(){
+  if(isPts()){
+    const t=i=>isDbl() ? (PTS_DOUBLES[sideSL(i)]||38) : (PTS_CHART[sideSL(i)]||38);
+    return [t(0),t(1)];
+  }
+  return [apa8(sideSL(0),sideSL(1)), apa8(sideSL(1),sideSL(0))];
+}
+function syncLeagueRaces(){ if(league()){ clampSL(); S.goal=chartRaces(); } }
+
+function snapshot(label){
+  history.push({s:JSON.stringify(S), label:label||"a change"});
+  if(history.length>60) history.shift();
+}
+function save(){ if(S) store.set(S.storeKey || key(S.format,S.game), S); }
+
+/* ---------- break rotation ----------
+   Derived, never stored, and it steps over a voided rack so a stalemate leaves
+   the same player breaking. */
+function breakerAt(idx){
+  if(idx<=0) return S.firstBreaker;
+  if(S.breakRule==="alternate"){
+    const played=S.log.slice(0,idx).filter(r=>!r.void).length;
+    return (S.firstBreaker+played)%2;
+  }
+  let j=idx-1;
+  while(j>=0 && S.log[j].void) j--;
+  if(j<0 || S.log[j].w===undefined) return S.firstBreaker;
+  return S.breakRule==="winner" ? S.log[j].w : 1-S.log[j].w;
+}
+const curBreaker=()=>breakerAt(S.log.length);
+const nextBreaker=()=>S.breakRule==="alternate" ? 1-curBreaker() : null;
+
+/* ---------- innings ----------
+   An inning ends when the second player's turn ends, as in 9-ball league. */
+function passTable(){
+  const from=S.turn;
+  S.turn=1-S.turn;
+  S.rackTurns++;
+  S.onBreak=false;
+  if(from===1) S.rackInnings++;
+}
+const totalInnings=()=>S.log.reduce((a,r)=>a+(r.inn||0),0)+S.rackInnings;
+
+/* ---------- scoring ---------- */
+function rackTotals(){
+  let a=0,b=0,d=0,used=0;
+  for(let n=1;n<=9;n++){
+    const o=S.owners[n]; if(o===undefined) continue;
+    used+=ptsFor(n);
+    if(o===1)a+=ptsFor(n); else if(o===2)b+=ptsFor(n); else d+=ptsFor(n);
+  }
+  return {a,b,d,used,left:rackTotal()-used};
+}
+function score(){
+  if(!isPts()) return [0,1].map(i=>S.log.filter(r=>!r.void && r.w===i).length);
+  const t=rackTotals();
+  const banked=S.log.reduce((acc,r)=>[acc[0]+(r.p1||0),acc[1]+(r.p2||0)],[0,0]);
+  return [banked[0]+t.a, banked[1]+t.b];
+}
+function winnerIdx(){
+  const sc=score();
+  for(const i of [0,1]) if(S.goal[i]>0 && sc[i]>=S.goal[i]) return i;
+  return -1;
+}
+function matchPoints(){
+  const w=winnerIdx(); if(w<0||!league()) return null;
+  const l=1-w, sc=score();
+  return isPts() ? mpPoints(sideSL(l),sc[l]) : mpRack(sc[l],S.goal[l]);
+}
+
+/* ---------- 9-ball break flags ---------- */
+const breakPoints=()=>(S.breakBalls||[]).reduce((a,b)=>a+ptsFor(b),0);
+function rackFlags(){
+  const who=curBreaker(), bp=breakPoints();
+  const snap=(S.breakBalls||[]).includes(9) && S.owners[9]===who+1;
+  let allBreaker=true, anyDead=false;
+  for(let n=1;n<=9;n++){
+    if(S.owners[n]==="d") anyDead=true;
+    if(S.owners[n]!==who+1) allBreaker=false;
+  }
+  const bnr=(S.owners[9]===who+1) && S.rackTurns===0 && allBreaker && !anyDead;
+  return {snap,bnr,bp,who};
+}
+
+/* ---------- dialogs ---------- */
+const askDlg=$("#ask"); let askFn=null;
+function ask(t,b,fn,yes){
+  $("#askT").textContent=t; $("#askB").textContent=b;
+  $("#askY").textContent=yes||"Confirm"; askFn=fn; askDlg.showModal();
+}
+$("#askY").onclick=()=>{askDlg.close();const f=askFn;askFn=null;if(f)f();};
+$("#askN").onclick=()=>{askDlg.close();askFn=null;};
+askDlg.addEventListener("click",e=>{if(e.target===askDlg){askDlg.close();askFn=null;}});
+
+const MODE_BLURB={
+  simplified:"The score and who breaks next. Nothing else to tap.",
+  detailed:"Adds innings from a miss button, defensive shots and break stats.",
+  league:"Adds match points, locks the races to the chart, winner breaks."
+};
+const modeDlg=$("#modeDlg");
+function openModeDlg(){
+  $("#modeT").textContent="How much detail?";
+  $("#modeList").innerHTML=Object.entries(MODES)
+    .filter(([m])=>m!=="league"||hasLeague())
+    .map(([m,l])=>`<button data-m="${m}" class="${m==="league"?"w":""}">${l}<small>${MODE_BLURB[m]}</small></button>`)
+    .join("");
+  document.querySelectorAll("#modeList button").forEach(b=>{
+    b.onclick=()=>{
+      S.mode=b.dataset.m;
+      S.modeChosen=true;
+      if(league()) S.breakRule="winner";
+      syncLeagueRaces(); save(); modeDlg.close(); render();
+    };
+  });
+  modeDlg.showModal();
+}
+modeDlg.addEventListener("close",()=>{
+  if(S && !S.modeChosen){ S.modeChosen=true; save(); }
+});
+
+const undoDlg=$("#undoDlg");
+$("#undoN").onclick=()=>undoDlg.close();
+undoDlg.addEventListener("click",e=>{if(e.target===undoDlg) undoDlg.close();});
+
+function openUndo(){
+  if(!history.length){
+    ask("Nothing to undo","No moves recorded yet in this match.",null,"OK");
+    return;
+  }
+  const items=history.map((h,i)=>({...h,i})).reverse().slice(0,20);
+  $("#undoList").innerHTML=items.map((h,n)=>
+    `<button data-u="${h.i}">${esc(h.label)}
+      <small>${n===0?"the last thing you did":"step back "+(n+1)+" · takes "+(n+1)+" actions off"}</small></button>`
+  ).join("");
+  document.querySelectorAll("#undoList button").forEach(b=>{
+    b.onclick=()=>{
+      const i=+b.dataset.u;
+      S=JSON.parse(history[i].s);
+      history=history.slice(0,i);
+      undoDlg.close(); save(); render();
+    };
+  });
+  undoDlg.showModal();
+}
+
+const overDlg=$("#over");
+$("#overN").onclick=()=>overDlg.close();
+overDlg.addEventListener("click",e=>{if(e.target===overDlg) overDlg.close();});
+
+function openOver(){
+  const at=S.turn;
+  /* On-the-break outcomes only stand up while it's genuinely still the break:
+     no innings yet, and the breaker is the one at the table. A lost break and a
+     rerack is handled by recording the 8 normally and nudging the inning. */
+  const stillBreak = S.rackInnings===0 && at===curBreaker();
+  $("#overP").textContent = nm(at)+" is at the table."
+    + (stillBreak?" Pick what happened.":" Past the break, so the break outcomes aren't offered.");
+  $("#overList").innerHTML=OUTCOMES.filter(o=>(!o.onBreak||stillBreak)&&(!o.offBreak||!stillBreak)).map(o=>{
+    const cls=o.void?"v":(o.win==="self"?"w":"l");
+    const who=o.win==="self"?shortNm(at):shortNm(1-at);
+    return `<button data-k="${o.k}" class="${cls}">${esc(o.label)}
+      <small>${o.void?o.note:esc(who)+" takes it · "+o.note}</small></button>`;
+  }).join("");
+  document.querySelectorAll("#overList button").forEach(b=>{
+    b.onclick=()=>{ overDlg.close(); applyOutcome(b.dataset.k); };
+  });
+  overDlg.showModal();
+}
+
+function applyOutcome(k){
+  const o=OUTCOMES.find(x=>x.k===k); if(!o) return;
+  snapshot(o.label+" — "+shortNm(S.turn));
+  const at=S.turn;
+  if(o.pass) passTable();                 // ends the offender's turn, may score an inning
+  if(o.void){
+    S.log.push({void:true, inn:S.rackInnings});
+  } else {
+    const w = o.win==="self" ? at : 1-at;
+    if(o.stat==="snap") S.stats.snap[at]++;
+    if(o.stat==="bnr")  S.stats.bnr[at]++;
+    S.log.push({w, inn:S.rackInnings, how:o.k});
+  }
+  S.rackInnings=0; S.rackTurns=0; S.onBreak=true; S.breakBalls=[];
+  S.turn=breakerAt(S.log.length);
+  save(); render();
+}
+
+/* ============================================================
+   views
+   ============================================================ */
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+function header(ctx,home){
+  return `<div class="top">
+    <div class="mark">
+      <svg viewBox="0 0 64 64" width="26" height="26" aria-hidden="true">
+        <rect x="3" y="3" width="58" height="58" rx="9" fill="#1B4F8A"/>
+        <circle cx="32" cy="32" r="20" fill="#123F73"/>
+        <g fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 18H27V27H15"/><path d="M27 22.5H34"/><path d="M15 37H27V46H15"/>
+          <path d="M27 41.5H34"/><path d="M34 22.5V41.5"/><path d="M34 32H49"/>
+        </g>
+      </svg>
+      <h1>Chalk<span>Score</span></h1>
+    </div>
+    ${ctx?`<div class="ctx">${esc(ctx)}</div>`:""}
+    <div class="sp"></div>
+    ${home?`<button class="tbtn" id="homeBtn">Menu</button>`:""}
+  </div>`;
+}
+
+let landingFormat = store.get("chalkscore:format","singles");
+
+function landing(){
+  const fmtBtns=Object.entries(FORMATS).map(([f,l])=>
+    `<button data-fmt="${f}" aria-pressed="${landingFormat===f}">${l}</button>`).join("");
+
+  if(landingFormat==="teams"){
+    const tt=Object.entries(TEAM_GAMES).map(([g,label])=>{
+      const saved=store.get(tkey(g),null);
+      const live=saved&&saved.stage==="play";
+      const desc=live
+        ? (saved.teams[0]||"Home")+" v "+(saved.teams[1]||"Away")+" · "+
+          saved.lineup.filter(m=>m.done).length+" of 5 in"
+        : "Five singles matches, one roster, the 23 rule watched as you build the lineup.";
+      return `<div class="tilewrap">
+        <button class="tile ${live?"has":""}" data-tgame="${g}">
+          ${live?`<div class="live">In progress</div>`:""}
+          <div class="nm">${label}</div>
+          <div class="sub">team night</div>
+          <div class="desc">${esc(desc)}</div>
+        </button>
+        ${saved?`<button class="clr" data-tclr="${g}">Clear</button>`:""}
+      </div>`;
+    }).join("");
+    return header("",false)+`
+      <div class="hero"><h2>Keep score</h2>
+        <p>Team night — five singles matches, one roster, the 23 rule watched for you.</p></div>
+      <div class="fmt">${fmtBtns}</div>
+      <div class="tiles">${tt}</div>
+      <p class="note">A player goes in once a night. Senior Skill Level is 6 and up, two to a team match.
+      Someone who isn't at the venue still counts toward the 23.</p>`;
+  }
+
+  const tiles=Object.entries(GAMES).map(([g,cfg])=>{
+    const saved=store.get(key(landingFormat,g),null);
+    const live=saved && saved.stage==="play";
+    const desc = live
+      ? (saved.names[0][0]||"Player 1")+" vs "+(saved.names[1][0]||"Player 2")+" · "+MODES[saved.mode].toLowerCase()
+      : cfg.desc;
+    return `<div class="tilewrap">
+      <button class="tile ${live?"has":""}" data-g="${g}">
+        ${live?`<div class="live">In progress</div>`:""}
+        <div class="nm">${cfg.label}</div>
+        <div class="sub">${cfg.sub}</div>
+        <div class="desc">${esc(desc)}</div>
+      </button>
+      ${saved?`<button class="clr" data-clr="${g}">Clear</button>`:""}
+    </div>`;
+  }).join("");
+
+  return header("",false)+`
+    <div class="hero"><h2>Keep score</h2>
+      <p>Pick a format, then a game. Everything saves as you go, so leaving never costs you a rack.</p></div>
+    <div class="fmt">${fmtBtns}</div>
+    <div class="tiles">${tiles}</div>
+    <p class="note">Simplified is the score and nothing else. Detailed adds innings and defensive shots.
+    League adds match points, locks the races to the chart and assumes winner breaks.</p>`;
+}
+
+function slOptions(val){
+  const [lo,hi]=slRange();
+  let out="";
+  for(let v=lo;v<=hi;v++) out+=`<option value="${v}"${v===+val?" selected":""}>${v}</option>`;
+  return out;
+}
+
+function setupView(){
+  const cfg=GAMES[S.game], rack=!isPts();
+  const usesChart=(rack&&S.game==="8ball")||isPts();
+
+  const sides=[0,1].map(i=>{
+    const players=(isDbl()?[0,1]:[0]).map(k=>`
+      <div class="grid2" style="margin-bottom:9px">
+        <label class="f" style="margin:0"><span>Name</span>
+          <input class="in" data-nm="${i}-${k}" value="${esc(S.names[i][k])}"
+            placeholder="Player ${i*2+k+1}" autocomplete="off"></label>
+        ${usesChart?`<label class="f" style="margin:0"><span>Skill level</span>
+          ${league()
+            ? `<select class="in num" data-sl="${i}-${k}">${slOptions(S.sl[i][k])}</select>`
+            : `<input class="in num" type="number" inputmode="numeric" min="1" max="9"
+                 data-sl="${i}-${k}" value="${S.sl[i][k]}">`}</label>`:""}
+      </div>`).join("");
+    const comb=(isDbl()&&usesChart)
+      ? `<div class="comb">${isPts()?"Combined "+sideSL(i):"Averaged to "+sideSL(i)+", rounded up"}</div>` : "";
+    return `<div class="side"><div class="lab">Side ${i+1}</div>${players}${comb}</div>`;
+  }).join("");
+
+  const modeBtns=Object.entries(MODES).filter(([m])=>m!=="league"||hasLeague())
+    .map(([m,l])=>`<button data-mode="${m}" aria-pressed="${S.mode===m}">${l}</button>`).join("");
+  const brkBtns=Object.entries(BREAK_RULES).map(([r,l])=>
+    `<button data-brk="${r}" aria-pressed="${S.breakRule===r}" ${league()?"disabled":""}>${l}</button>`).join("");
+  const firstBtns=[0,1].map(i=>
+    `<button data-first="${i}" aria-pressed="${S.firstBreaker===i}">${esc(shortNm(i))}</button>`).join("");
+
+  return header(cfg.label+" · "+FORMATS[S.format].toLowerCase(),true)+`
+    <div class="card"><h3>How much detail</h3>
+      <div class="seg">${modeBtns}</div>
+      <p class="hint" id="modeHint"></p>
+    </div>
+
+    <div class="card"><h3>Players</h3>${sides}
+      ${usesChart&&!league()?`<button class="tbtn" id="fillBtn" style="width:100%;padding:10px">
+        Fill races from the ${isPts()?"APA points chart":"APA 8-ball chart"}</button>`:""}
+      <div class="grid2" style="margin-top:12px">
+        ${[0,1].map(i=>`<label class="f" style="margin:0"><span>${esc(shortNm(i))} ${rack?"races to":"needs"}</span>
+          <input class="in num" type="number" inputmode="numeric" min="1"
+            data-goal="${i}" value="${S.goal[i]}" ${league()?"disabled":""}></label>`).join("")}
+      </div>
+      ${league()?`<p class="hint">League races come off the chart and can't be edited — change a skill level and they follow.</p>`:""}
+    </div>
+
+    <div class="card"><h3>Breaking</h3>
+      <div class="seg">${brkBtns}</div>
+      ${league()?`<p class="hint">League is winner breaks.</p>`:""}
+      <div style="font-family:var(--data);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--mute);margin:13px 0 5px">Who breaks first</div>
+      <div class="seg">${firstBtns}</div>
+      <p class="hint">Who's up next is worked out from this and the racks played, so an undo can't leave the break out of step.</p>
+    </div>
+
+    ${isPts()?`<div class="card"><h3>Sudden death</h3>
+      <div class="seg"><button id="sdBtn" aria-pressed="${!!S.sd}">${S.sd?"On — every ball doubles":"Off"}</button></div>
+      <p class="hint">Practice format. A rack is worth ${S.sd?20:10} points as set.</p></div>`:""}
+
+    <div style="padding:0 14px 22px"><button class="go" id="startBtn">Start scoring</button></div>`;
+}
+
+function ballGrid(){
+  let out="";
+  for(let b=1;b<=9;b++){
+    out+=`<button class="ball${SOLID.has(b)?" solid":""}" data-ball="${b}"
+      ${SOLID.has(b)?`style="background:${BALL_COLORS[b]}"`:""}>
+      ${SOLID.has(b)?`<span class="n">${b}</span>`
+        :`<span class="stripe" style="--c:${BALL_COLORS[b]}"></span><span class="n">${b}</span>`}
+      <span class="tag"></span></button>`;
+  }
+  return out;
+}
+
+let embedded=false;
+function playView(){
+  const cfg=GAMES[S.game], sc=score(), w=winnerIdx(), mp=matchPoints();
+  const br=curBreaker(), nx=nextBreaker();
+  const showTurn=detailed()||isPts();
+
+  const players=[0,1].map(i=>{
+    const done=S.goal[i]>0 && sc[i]>=S.goal[i];
+    const togo=Math.max(0,S.goal[i]-sc[i]);
+    const pct=S.goal[i]?Math.min(100,sc[i]/S.goal[i]*100):0;
+    const usesChart=(S.game==="8ball")||isPts();
+    const slLine = !usesChart ? "&nbsp;"
+      : (isDbl() ? (isPts()?"Combined ":"Avg ")+sideSL(i) : "SL "+sideSL(i));
+    const bits=[];
+    if(S.stats.snap[i]) bits.push(`<b>${S.stats.snap[i]}</b> snap`);
+    if(S.stats.bnr[i])  bits.push(`<b>${S.stats.bnr[i]}</b> B&amp;R`);
+    return `<div class="pl ${done?"won":""} ${showTurn&&S.turn===i&&w<0?"turn":""}">
+      ${done?`<span class="flag">Win</span>`:(showTurn&&S.turn===i&&w<0?`<span class="flag">At table</span>`:"")}
+      <div class="who">${esc(nm(i))}</div>
+      <div class="sl">${slLine}</div>
+      <div class="big">${sc[i]}<span class="of"> / ${S.goal[i]}</span></div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div class="togo">${done?"winner":togo+" to go"}</div>
+      ${league()&&mp?`<div class="mp">${(w===i?mp.win:mp.lose)} match pts</div>`:""}
+      ${bits.length?`<div class="st">${bits.join(" · ")}</div>`:""}
+    </div>`;
+  }).join("");
+
+  const brkBar = w>=0 ? "" : `<div class="brk">
+    <div><div class="lab">Breaking</div><div class="who">${esc(nm(br))}</div></div>
+    <div class="nxt">${BREAK_RULES[S.breakRule]}<br>
+      ${nx!==null?`next: <b>${esc(shortNm(nx))}</b>`
+        :`next: <b>${S.breakRule==="winner"?"winner":"loser"} of this rack</b>`}</div></div>`;
+
+  const missBtn = `<button class="big-btn" id="missBtn">Miss &rarr; ${esc(shortNm(1-S.turn))}<small>${S.turn===1?"ends the turn · scores an inning":"ends the turn at the table"}</small></button>`;
+
+  let body="";
+  if(w>=0){
+    body="";
+  } else if(!isPts()){
+    if(S.game==="8ball" && detailed()){
+      body=`<div class="acts">${missBtn}</div>
+            <div class="acts"><button class="big-btn over" id="overBtn">Game over<small>record how it ended</small></button></div>`;
+    } else {
+      body=`${detailed()?`<div class="acts">${missBtn}</div>`:""}
+        <div class="acts two">
+          ${[0,1].map(i=>`<button class="big-btn" data-won="${i}">${esc(shortNm(i))} won<small>the ${S.game==="8ball"?"game":"rack"}</small></button>`).join("")}
+        </div>`;
+    }
+  } else {
+    const t=rackTotals(), f=rackFlags(), bpNow=breakPoints();
+    const notes=[];
+    if(detailed()){
+      if(f.bnr) notes.push("<b>Break and run</b>");
+      if(f.snap) notes.push("<b>9 on the snap</b>");
+      if(f.bp>=2 && !f.bnr) notes.push(`<b>${f.bp}-point break</b>`);
+    }
+    body=`<div class="acts">${missBtn}</div>
+      ${S.sd?`<div class="sdnote">Sudden death — every ball doubles. This rack is ${rackTotal()} points.</div>`:""}
+      <div class="sect"><h3>Rack ${S.log.length+1}${S.sd?" <em>· sudden death</em>":""}</h3>
+        <p class="hint">One tap gives the ball to whoever is at the table. Tap again for dead, a third to clear.
+        Potting the 9 kills whatever is left.</p></div>
+      ${(detailed()&&S.onBreak)?`<button class="onbreak" id="onBreakBtn">${bpNow?`On the break — ${bpNow} point${bpNow===1?"":"s"} so far · tap when the break shot is done`:"On the break — tap the balls made, then tap here"}</button>`:""}
+      <div class="sect" style="padding-top:0"><div class="balls">${ballGrid()}</div></div>
+      <div class="rbar">
+        <span><b>${t.a}</b> ${esc(shortNm(0))} &nbsp; <b>${t.b}</b> ${esc(shortNm(1))} &nbsp; <b>${t.d}</b> dead</span>
+        <span><b>${t.left}</b> left</span></div>
+      ${notes.length?`<div class="flash">${notes.join(" · ")} — ${esc(shortNm(f.who))}. Recorded when you close the rack.</div>`:""}
+      <button class="newrack ${t.left===0?"ready":""}" id="newRack" ${t.left===0?"":"disabled"}>Rack complete &rarr; next rack</button>`;
+  }
+
+  const ctrs=(detailed()&&w<0)?`
+    <div class="sect" style="padding-bottom:0"><h3>Defensive shots</h3></div>
+    <div class="ctrs" style="padding-top:9px">
+      ${[0,1].map(i=>`<div class="ctr"><div class="lab">${esc(shortNm(i))}</div><div class="val">${S.defense[i]}</div>
+        <div class="pm"><button data-c="def${i}" data-v="-1">&minus;</button><button data-c="def${i}" data-v="1">+</button></div></div>`).join("")}
+    </div>
+    <div class="ctrs one" style="padding-top:0"><div class="ctr">
+      <div class="lab">Innings</div><div class="val">${totalInnings()}</div>
+      <div class="sub">counted from the misses${S.log.length?" · this rack "+S.rackInnings:""}</div>
+      <div class="pm"><button data-c="inn" data-v="-1">&minus;</button><button data-c="inn" data-v="1">+</button></div>
+    </div></div>`:"";
+
+  const banner = w<0?"":`<div class="banner">
+    <b>${esc(nm(w))} wins</b>
+    <div class="s">${sc[w]}&ndash;${sc[1-w]}${detailed()?` · ${totalInnings()} inning${totalInnings()===1?"":"s"}`:""}</div>
+    ${mp?`<div class="pts">${mp.win}&ndash;${mp.lose}<small>Match points</small></div>`:""}</div>`;
+
+  const logRows = !S.log.length?"":`<div class="log"><h3>${isPts()?"Racks":(S.game==="8ball"?"Games":"Racks")}</h3>`+
+    S.log.map((r,i)=>{
+      const b=breakerAt(i);
+      const tail=`<span class="br">${detailed()?(r.inn||0)+" inn · ":""}${esc(shortNm(b))} broke</span>`;
+      if(r.void) return `<div class="lg"><span class="i">${i+1}</span><span class="void">stalemate — reracked</span>${tail}</div>`;
+      if(isPts()) return `<div class="lg"><span class="i">${i+1}</span>
+        <span class="a">${r.p1}</span><span class="b">${r.p2}</span>
+        ${r.bnr?'<span class="badge bnr">B&amp;R</span>':""}${r.snap?'<span class="badge snap">SNAP</span>':""}
+        ${(r.bp>=2&&!r.bnr)?`<span class="badge brk">${r.bp}-PT</span>`:""}
+        ${r.dead?`<span class="d">${r.dead} dead</span>`:""}${tail}</div>`;
+      return `<div class="lg"><span class="i">${i+1}</span>
+        <span class="${r.w===0?"a":"b"}">${esc(shortNm(r.w))}</span>
+        ${r.how&&HOW[r.how]?`<span class="how">${HOW[r.how]}</span>`:""}${tail}</div>`;
+    }).join("")+`</div>`;
+
+  return header(cfg.label+" · "+MODES[S.mode].toLowerCase(),true)+
+    brkBar+`<div class="pp">${players}</div>`+body+ctrs+banner+logRows+`
+    ${embedded?`<div style="display:flex;gap:9px;padding:14px">
+      <button class="tbtn" id="undoBtn" style="flex:1;padding:11px">Undo…</button>
+      ${w>=0?`<button class="go" id="tRecord" style="flex:2;padding:11px">Record ${sc[w]}&ndash;${sc[1-w]}</button>`:""}
+    </div>`:`<div style="display:flex;gap:9px;padding:14px">
+      <button class="tbtn" id="undoBtn" style="flex:1;padding:11px">Undo…</button>
+      <button class="tbtn" id="editBtn" style="flex:1;padding:11px">Edit setup</button>
+      <button class="tbtn warn" id="newBtn" style="flex:1;padding:11px">New match</button>
+    </div>`}
+    <footer class="foot">
+      ${FORMATS[S.format]} &middot; ${BREAK_RULES[S.breakRule]} &middot; ${esc(shortNm(S.firstBreaker))} broke first.
+      ${isPts()?"Balls 1&ndash;8 are a point each, the 9 is two. ":""}
+      ${detailed()?"An inning is scored when the second player's turn ends. ":""}
+      ${league()?(isPts()?"Match points off the APA 9-ball chart. "
+        :"A shutout is 3&ndash;0, the loser reaching the hill is 2&ndash;1, anything between is 2&ndash;0. "):""}
+      Unofficial helper &mdash; the paper scoresheet is what counts.
+    </footer>`;
+}
+
+
+/* ============================================================
+   TEAM NIGHT
+   Five singles matches, a fixed roster of eight a side, and the 23 rule
+   and two Senior Skill Level limit watched as the lineup is built.
+   ============================================================ */
+
+const TEAM_GAMES={"8ball":"8-Ball", "9points":"9-Ball"};
+const MATCHES=5, ROSTER_SLOTS=8;
+const maxMP=g=>g==="8ball"?3:20;
+const FORFEIT={weekly:{"8ball":2,"9points":15}, tournament:{"8ball":3,"9points":20}};
+
+let T=null;
+const tkey=g=>"chalkscore:teams:"+g;
+let rid=0;
+const newId=()=>"p"+(Date.now().toString(36))+(rid++).toString(36)+Math.floor(Math.random()*1e4).toString(36);
+
+const emptyRoster=game=>Array.from({length:ROSTER_SLOTS},()=>({
+  id:newId(), name:"", sl:game==="8ball"?4:5, present:true }));
+
+function blankTeam(game){
+  return {
+    game, play:"weekly", stage:"setup", rosterOk:false,
+    limit:23, seniorFrom:6, seniorMax:2,
+    teams:["",""],
+    rosters:[emptyRoster(game), emptyRoster(game)],
+    lineup:Array.from({length:MATCHES},()=>({pid:[null,null],ours:0,theirs:0,
+      done:false, sd:false, racks:[]})),
+    sdFrom:null, tab:"team", theorySide:0,
+    theory:[{out:[],lock:[]},{out:[],lock:[]}], started:Date.now()
+  };
+}
+const tsave=()=>{ if(T) store.set(tkey(T.game),T); };
+
+/* Saved rosters. Skill levels differ between 8-ball and 9-ball, so a team is
+   saved per game rather than once. */
+const savedKey=g=>"chalkscore:saved:"+g;
+const getSaved=g=>store.get(savedKey(g),[]);
+function putSaved(g,list){ store.set(savedKey(g),list); }
+function saveRoster(side){
+  const players=activeRoster(side).map(p=>({name:p.name.trim(), sl:p.sl}));
+  if(!players.length) return null;
+  const nm=(T.teams[side]||"").trim() || ("Team "+(getSaved(T.game).length+1));
+  const list=getSaved(T.game);
+  const at=list.findIndex(t=>t.name.toLowerCase()===nm.toLowerCase());
+  const entry={name:nm, players, at:Date.now()};
+  if(at>=0) list[at]=entry; else list.push(entry);
+  putSaved(T.game,list);
+  return nm;
+}
+function loadRoster(side,name){
+  const t=getSaved(T.game).find(x=>x.name===name);
+  if(!t) return false;
+  T.teams[side]=t.name;
+  T.rosters[side]=emptyRoster(T.game);
+  t.players.slice(0,ROSTER_SLOTS).forEach((p,i)=>{
+    T.rosters[side][i].name=p.name;
+    T.rosters[side][i].sl=p.sl;
+    T.rosters[side][i].present=true;
+  });
+  return true;
+}
+const isTPts=()=>T.game==="9points";
+/* Only filled-in slots count as players. Blanks are fine — not every team
+   carries eight. */
+const activeRoster=side=>T.rosters[side].filter(p=>p.name.trim());
+const rosterOf=(side,id)=>T.rosters[side].find(p=>p.id===id)||null;
+const teamName=i=>T.teams[i]||(i===0?"Home":"Away");
+
+/* Could this side still finish the night legally if this player goes in next?
+   Note 2 lets a rostered player who isn't at the venue count toward the limit,
+   so the projection uses every unplayed name on the roster, here or not. */
+/* A picked player counts whether or not their match has finished — a lineup is
+   committed the moment it's named. Anything else double-counts: the player is
+   out of the pool but their skill level isn't on the tally. */
+function feasible(side, pick, idx){
+  const roster=activeRoster(side);
+  const others=T.lineup.map((m,i)=>i===idx?null:rosterOf(side,m.pid[side])).filter(Boolean);
+  const usedSL=others.reduce((a,p)=>a+p.sl,0);
+  const usedSen=others.filter(p=>p.sl>=T.seniorFrom).length;
+  const taken=new Set(others.map(p=>p.id));
+  const remaining=roster.filter(r=>!taken.has(r.id) && (!pick||r.id!==pick.id));
+  const emptySlots=T.lineup.filter((m,i)=>i!==idx && !m.pid[side]).length;
+  const slotsLeft=emptySlots-(pick?0:0);
+
+  if(slotsLeft>remaining.length) return {ok:false, why:"not enough players left to fill five"};
+
+  const cheapest=[...remaining].sort((a,b)=>a.sl-b.sl).slice(0,Math.max(0,slotsLeft));
+  const senMin=usedSen+(pick&&pick.sl>=T.seniorFrom?1:0)+cheapest.filter(p=>p.sl>=T.seniorFrom).length;
+  if(senMin>T.seniorMax)
+    return {ok:false, why:`would force ${senMin} senior skill players, limit is ${T.seniorMax}`};
+
+  const totalMin=usedSL+(pick?pick.sl:0)+cheapest.reduce((a,p)=>a+p.sl,0);
+  if(totalMin>T.limit) return {ok:false, why:`best case totals ${totalMin}, over ${T.limit}`};
+
+  return {ok:true, totalMin, senMin};
+}
+
+function usedBy(side){
+  const list=T.lineup.map(m=>rosterOf(side,m.pid[side])).filter(Boolean);
+  return {sl:list.reduce((a,p)=>a+p.sl,0), sen:list.filter(p=>p.sl>=T.seniorFrom).length};
+}
+
+/* Points for one completed match. Sudden death is racks, not a race. */
+function matchResult(m){
+  const A=rosterOf(0,m.pid[0]), B=rosterOf(1,m.pid[1]);
+  if(!A) return null;
+  if(m.sd){
+    const r=m.racks||[];
+    if(!r.length) return null;
+    let ours=r[0]===0?2:0, theirs=r[0]===1?2:0;
+    if(r.length>1){ if(r[1]===0) ours+=1; else theirs+=1; }
+    return {ours,theirs,sd:true};
+  }
+  if(!B) return null;
+  const goals = isTPts()
+    ? [PTS_CHART[A.sl]||38, PTS_CHART[B.sl]||38]
+    : [apa8(A.sl,B.sl), apa8(B.sl,A.sl)];
+  const sc=[+m.ours||0, +m.theirs||0];
+  const w = sc[0]>=goals[0] ? 0 : (sc[1]>=goals[1] ? 1 : -1);
+  if(w<0) return null;
+  const l=1-w;
+  const mp = isTPts() ? mpPoints(l===0?A.sl:B.sl, sc[l]) : mpRack(sc[l], goals[l]);
+  return {ours:w===0?mp.win:mp.lose, theirs:w===0?mp.lose:mp.win, goals, w};
+}
+
+function teamTotals(){
+  let ours=0, theirs=0, wins=[0,0];
+  T.lineup.forEach(m=>{
+    if(!m.done) return;
+    const r=matchResult(m); if(!r) return;
+    ours+=r.ours; theirs+=r.theirs;
+    if(r.ours>r.theirs) wins[0]++; else if(r.theirs>r.ours) wins[1]++;
+  });
+  return {ours,theirs,wins};
+}
+
+function slOptionsFor(game,val){
+  const lo=game==="8ball"?2:1, hi=game==="8ball"?7:9;
+  let out="";
+  for(let v=lo;v<=hi;v++) out+=`<option value="${v}"${v===+val?" selected":""}>${v}</option>`;
+  return out;
+}
+
+/* ---------- setup ---------- */
+function rosterCard(side){
+  const rows=T.rosters[side].map((p,i)=>`
+    <div style="display:grid;grid-template-columns:1fr 70px 62px;gap:7px;margin-bottom:7px;align-items:center">
+      <input class="in" data-rn="${side}-${p.id}" value="${esc(p.name)}"
+        placeholder="Slot ${i+1}" autocomplete="off">
+      <select class="in num" data-rs="${side}-${p.id}">${slOptionsFor(T.game,p.sl)}</select>
+      <button class="tbtn" data-rp="${side}-${p.id}" style="padding:9px 4px;${!p.name.trim()?"opacity:.35;":(p.present?"color:var(--win);border-color:rgba(127,224,166,.5)":"color:var(--gold);border-color:rgba(227,176,82,.5)")}">${p.present?"Here":"Out"}</button>
+    </div>`).join("");
+  const list=activeRoster(side);
+  const low5=[...list].sort((a,b)=>a.sl-b.sl).slice(0,5).reduce((a,p)=>a+p.sl,0);
+  const low4=[...list].sort((a,b)=>a.sl-b.sl).slice(0,4).reduce((a,p)=>a+p.sl,0);
+  let warn="";
+  if(list.length>=5 && low5>T.limit){
+    warn = low4<=19
+      ? `<p class="hint" style="color:var(--gold)">Lowest five total ${low5}, over ${T.limit}. This roster has to play four to 19 and forfeit the fifth.</p>`
+      : `<p class="hint" style="color:var(--loss)">Lowest five total ${low5}, lowest four total ${low4}. That's three to 15 and two forfeits.</p>`;
+  } else if(list.length>0 && list.length<5){
+    warn=`<p class="hint" style="color:var(--gold)">${list.length} player${list.length===1?"":"s"} — ${5-list.length} match${5-list.length===1?"":"es"} would be forfeit.</p>`;
+  }
+  const saved=getSaved(T.game);
+  const savedRow=`<div style="display:flex;gap:7px;margin-bottom:11px">
+    <select class="in" data-load="${side}" style="flex:1">
+      <option value="">${saved.length?"Load a saved team…":"No saved teams yet"}</option>
+      ${saved.map(t=>`<option value="${esc(t.name)}">${esc(t.name)} · ${t.players.length}</option>`).join("")}
+    </select>
+    <button class="tbtn" data-save="${side}" style="padding:9px 12px">Save</button>
+  </div>`;
+  return `<div class="card"><h3>${esc(teamName(side))} roster</h3>
+    ${savedRow}
+    <div style="display:grid;grid-template-columns:1fr 70px 62px;gap:7px;margin-bottom:6px"
+      class="eyebrow"><span>Name</span><span>SL</span><span>At venue</span></div>
+    ${rows}
+    <div class="rbar" style="padding:8px 0 0">
+      <span><b>${list.length}</b> named &nbsp; <b>${list.filter(p=>p.present).length}</b> here &nbsp;
+        <b>${list.filter(p=>p.sl>=T.seniorFrom).length}</b> senior</span>
+      <span>lowest five <b>${list.length>=5?low5:"—"}</b> of ${T.limit}</span>
+    </div>${warn}</div>`;
+}
+
+function teamsSetup(){
+  const g=T.game;
+  const ready=activeRoster(0).length>0;
+  return header("Team night · "+TEAM_GAMES[g],true)+`
+    <div class="card"><h3>The night</h3>
+      <div class="seg">
+        <button data-tg="8ball" aria-pressed="${g==="8ball"}">8-Ball</button>
+        <button data-tg="9points" aria-pressed="${g==="9points"}">9-Ball</button>
+      </div>
+      <div class="seg" style="margin-top:9px">
+        <button data-tp="weekly" aria-pressed="${T.play==="weekly"}">Weekly</button>
+        <button data-tp="tournament" aria-pressed="${T.play==="tournament"}">Tournament</button>
+      </div>
+      <p class="hint">${T.play==="weekly"
+        ? "All five matches get played. No sudden death."
+        : "Sudden death can be called once the clock runs."}</p>
+      <div class="grid2" style="margin-top:12px">
+        ${[0,1].map(i=>`<label class="f" style="margin:0"><span>${i===0?"Our team":"Their team"}</span>
+          <input class="in" data-tn="${i}" value="${esc(T.teams[i])}"
+            placeholder="${i===0?"Home":"Away"}" autocomplete="off"></label>`).join("")}
+      </div>
+    </div>
+
+    ${rosterCard(0)}
+    ${rosterCard(1)}
+
+    <div class="card"><h3>Limits</h3>
+      <div class="grid2">
+        <label class="f" style="margin:0"><span>Team skill limit</span>
+          <input class="in num" type="number" data-lim="1" value="${T.limit}"></label>
+        <label class="f" style="margin:0"><span>Senior skill from</span>
+          <input class="in num" type="number" data-sf="1" value="${T.seniorFrom}"></label>
+      </div>
+      <p class="hint">23 for 8-Ball and 9-Ball Open. Senior Skill Level is 6 and up, two to a team match.
+      Leave roster slots blank if a team doesn't carry eight.</p>
+    </div>
+
+    <div style="padding:0 14px 22px">
+      <button class="go" id="tAccept" ${ready?"":"disabled"}>${ready?"Accept rosters and start":"Enter at least one player"}</button>
+    </div>`;
+}
+
+/* ---------- play ---------- */
+/* Each team match gets its own scorer, keyed to the pairing so swapping a
+   player starts a clean sheet rather than inheriting someone else's racks. */
+const teamMatchKey=idx=>"chalkscore:teams:"+T.game+":m"+idx;
+const shortName=n=>((n||"").split(" ")[0].slice(0,9))||"—";
+
+function ensureMatchState(idx){
+  const m=T.lineup[idx];
+  const A=rosterOf(0,m.pid[0]), B=rosterOf(1,m.pid[1]);
+  if(!A||!B) return null;
+  const goals = isTPts() ? [PTS_CHART[A.sl]||38, PTS_CHART[B.sl]||38]
+                         : [apa8(A.sl,B.sl), apa8(B.sl,A.sl)];
+  let st=store.get(teamMatchKey(idx),null);
+  if(!st || st.pidA!==A.id || st.pidB!==B.id){
+    st=blank("singles", T.game);
+    st.mode="league"; st.modeChosen=true; st.stage="play";
+    st.names=[[A.name,""],[B.name,""]];
+    st.sl=[[A.sl,5],[B.sl,5]];
+    st.goal=goals; st.breakRule="winner"; st.firstBreaker=0; st.turn=0;
+    st.pidA=A.id; st.pidB=B.id;
+  }
+  st.goal=goals;
+  st.storeKey=teamMatchKey(idx);
+  return st;
+}
+
+function recordTeamMatch(){
+  const idx=T.tab;
+  if(typeof idx!=="number") return;
+  const sc=score();
+  T.lineup[idx].ours=sc[0];
+  T.lineup[idx].theirs=sc[1];
+  T.lineup[idx].done=true;
+  T.tab="team";
+  embedded=false; S=null;
+  tsave(); render();
+}
+
+function teamTabs(){
+  const btns=[`<button data-ttab="team" aria-pressed="${T.tab==="team"}">Team</button>`,
+              `<button data-ttab="theory" aria-pressed="${T.tab==="theory"}">Theory</button>`]
+    .concat(T.lineup.map((m,i)=>{
+      const A=rosterOf(0,m.pid[0]);
+      const label=A?shortName(A.name):("Match "+(i+1));
+      const dot=m.done?'<span class="dot done"></span>'
+        :(m.pid[0]&&m.pid[1]?'<span class="dot live"></span>':"");
+      return `<button data-ttab="${i}" aria-pressed="${T.tab===i}">${esc(label)}${dot}</button>`;
+    }));
+  return `<div class="ttabs">${btns.join("")}</div>`;
+}
+
+function teamsPlay(){
+  if(typeof T.tab==="number" && T.lineup[T.tab]) return teamMatchTab(T.tab);
+  if(T.tab==="theory") return theoryTab();
+  return teamTeamTab();
+}
+
+/* ---------- theory ----------
+   Every legal way to fill the remaining matches, so you can see who is
+   genuinely compulsory rather than assuming it. */
+function combosOf(arr,k){
+  const out=[];
+  if(k<0||k>arr.length) return out;
+  (function go(start,cur){
+    if(cur.length===k){ out.push(cur.slice()); return; }
+    for(let i=start;i<arr.length;i++){ cur.push(arr[i]); go(i+1,cur); cur.pop(); }
+  })(0,[]);
+  return out;
+}
+
+function theoryTab(){
+  /* older nights stored one sandbox; split it per side */
+  if(!Array.isArray(T.theory)) T.theory=[T.theory||{out:[],lock:[]},{out:[],lock:[]}];
+  if(T.theorySide===undefined) T.theorySide=0;
+  const side=T.theorySide;
+  const sb=T.theory[side]=T.theory[side]||{out:[],lock:[]};
+  const outSet=new Set(sb.out), lockSet=new Set(sb.lock);
+  const committed=T.lineup.map(m=>rosterOf(side,m.pid[side])).filter(Boolean);
+  const usedSL=committed.reduce((a,p)=>a+p.sl,0);
+  const usedSen=committed.filter(p=>p.sl>=T.seniorFrom).length;
+  const committedIds=new Set(committed.map(p=>p.id));
+
+  const roster=activeRoster(side).filter(p=>!committedIds.has(p.id));
+  const locked=roster.filter(p=>lockSet.has(p.id));
+  const pool=roster.filter(p=>!outSet.has(p.id)&&!lockSet.has(p.id));
+  const slots=MATCHES-committed.length-locked.length;
+
+  const lockSL=locked.reduce((a,p)=>a+p.sl,0);
+  const lockSen=locked.filter(p=>p.sl>=T.seniorFrom).length;
+
+  let lineups=[];
+  let overflow=false;
+  if(slots>=0 && slots<=pool.length){
+    lineups=combosOf(pool,slots).filter(c=>{
+      const sum=usedSL+lockSL+c.reduce((a,p)=>a+p.sl,0);
+      const sen=usedSen+lockSen+c.filter(p=>p.sl>=T.seniorFrom).length;
+      return sum<=T.limit && sen<=T.seniorMax;
+    }).map(c=>[...locked,...c]);
+    lineups.sort((a,b)=>b.reduce((x,p)=>x+p.sl,0)-a.reduce((x,p)=>x+p.sl,0));
+  }
+
+  const appears=p=>lineups.filter(c=>c.some(x=>x.id===p.id)).length;
+  const must=roster.filter(p=>lineups.length&&appears(p)===lineups.length);
+  const never=roster.filter(p=>lineups.length&&appears(p)===0);
+  const optional=roster.filter(p=>!must.includes(p)&&!never.includes(p));
+
+  const row=p=>{
+    const state=lockSet.has(p.id)?"lock":(outSet.has(p.id)?"out":"in");
+    const n=appears(p);
+    const tag=state==="out"?`<span class="eyebrow" style="color:var(--mute)">not considered</span>`
+      :state==="lock"?`<span class="eyebrow" style="color:var(--gold)">locked in</span>`
+      :(lineups.length? (n===lineups.length?`<span class="eyebrow" style="color:var(--win)">must play</span>`
+        :n===0?`<span class="eyebrow" style="color:var(--loss)">can't fit</span>`
+        :`<span class="eyebrow">${n} of ${lineups.length}</span>`) : "");
+    return `<div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-top:1px dotted rgba(36,92,67,.7)">
+      <span style="flex:1;${state==="out"?"color:var(--mute)":""}">${esc(p.name)}
+        <span style="color:var(--chalk-dim);font-family:var(--data);font-size:11px"> SL ${p.sl}</span></span>
+      ${tag}
+      <button class="tbtn" data-th="${p.id}" style="padding:6px 10px;${state==="lock"?"color:var(--gold);border-color:rgba(227,176,82,.5)":state==="out"?"color:var(--loss);border-color:rgba(224,122,112,.4)":""}">${state==="lock"?"Locked":state==="out"?"Out":"In"}</button>
+    </div>`;
+  };
+
+  const shown=lineups.slice(0,14);
+  const list=shown.map(c=>{
+    const sum=usedSL+c.reduce((a,p)=>a+p.sl,0);
+    return `<div class="lg"><span class="a" style="font-size:13px">${c.map(p=>p.sl).join(" · ")}</span>
+      <span class="how" style="flex:1">${esc(c.map(p=>shortName(p.name)).join(", "))}</span>
+      <span class="br" style="color:${sum===T.limit?"var(--gold)":"var(--mute)"}">${sum}</span></div>`;
+  }).join("");
+
+  return header("Theory · "+TEAM_GAMES[T.game],true)+teamTabs()+`
+    <div class="fmt" style="padding:14px 14px 0">
+      ${[0,1].map(i=>`<button data-thside="${i}" aria-pressed="${side===i}">${esc(i===0?teamName(0):teamName(1))}</button>`).join("")}
+    </div>
+    <div class="card"><h3>What ${side===0?"we":"they"} can still throw</h3>
+      <div class="rbar" style="padding:0">
+        <span>${committed.length} committed · ${slots<0?0:slots} slot${slots===1?"":"s"} to fill</span>
+        <span>skill used <b>${usedSL+lockSL}</b>/${T.limit}</span>
+      </div>
+      <p class="hint">Tap a name to lock them in or take them out of the reckoning. Nothing here changes
+      the night — it's a sandbox.</p>
+      ${roster.map(row).join("")}
+      ${roster.length?"":`<p class="hint">Everyone on the roster has already played.</p>`}
+    </div>
+
+    <div class="card"><h3>${lineups.length} legal lineup${lineups.length===1?"":"s"}</h3>
+      ${slots<0?`<p class="hint" style="color:var(--loss)">More players are locked in than there are matches left.</p>`
+        :slots>pool.length?`<p class="hint" style="color:var(--loss)">Only ${pool.length} available for ${slots} slot${slots===1?"":"s"} — the rest would be forfeit.</p>`
+        :lineups.length?`
+          ${must.length?`<p class="hint" style="color:var(--win);margin-top:0">Must play: <b>${must.map(p=>esc(p.name)).join(", ")}</b> — in every legal lineup.</p>`
+            :`<p class="hint" style="margin-top:0">Nobody is compulsory.</p>`}
+          ${never.length?`<p class="hint" style="color:var(--loss)">Can't fit: <b>${never.map(p=>esc(p.name)).join(", ")}</b></p>`:""}
+          ${optional.length?`<p class="hint">Optional: ${optional.map(p=>esc(p.name)).join(", ")}</p>`:""}
+          <div style="margin-top:10px">${list}</div>
+          ${lineups.length>shown.length?`<p class="hint">${lineups.length-shown.length} more, strongest shown first.</p>`
+            :`<p class="hint">Strongest first. Gold means it uses the full ${T.limit}.</p>`}`
+        :`<p class="hint" style="color:var(--loss)">No legal lineup fills the remaining matches.</p>`}
+    </div>
+
+    <div style="padding:0 14px 22px">
+      <button class="tbtn" id="thReset" style="width:100%;padding:12px">Reset the sandbox</button>
+    </div>`;
+}
+
+function teamTeamTab(){
+  const tt=teamTotals();
+  const u0=usedBy(0), u1=usedBy(1);
+  const doneCount=T.lineup.filter(m=>m.done).length;
+  const onTable=(MATCHES-doneCount)*maxMP(T.game);
+  const nextIdx=T.lineup.findIndex(m=>!m.done);
+  const firstOpen=side=>{
+    const i=T.lineup.findIndex(m=>!m.pid[side]);
+    return i<0?-1:i;
+  };
+
+  const throwsFor=side=>{
+    const slot=firstOpen(side);
+    if(slot<0) return "the lineup is full";
+    const taken=new Set(T.lineup.map(x=>x.pid[side]).filter(Boolean));
+    const ok=activeRoster(side).filter(p=>!taken.has(p.id)&&feasible(side,p,slot).ok);
+    if(!ok.length) return "nobody can fill it legally";
+    return ok.map(p=>`${esc(p.name)} ${p.sl}${p.present?"":" (out)"}`).join(" · ");
+  };
+
+  const rosterRows=side=>{
+    const taken=new Set(T.lineup.map(x=>x.pid[side]).filter(Boolean));
+    const slot=firstOpen(side);
+    return activeRoster(side).map(p=>{
+      const played=taken.has(p.id);
+      const f=(played||slot<0)?null:feasible(side,p,slot);
+      return `<div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-top:1px dotted rgba(36,92,67,.7)">
+        <span style="flex:1;${played?"color:var(--mute);text-decoration:line-through":""}">${esc(p.name)}
+          <span style="color:var(--chalk-dim);font-family:var(--data);font-size:11px"> SL ${p.sl}</span></span>
+        ${played?`<span class="eyebrow">in the lineup</span>`
+          :(!f?`<span class="eyebrow">—</span>`
+            :f.ok?`<span class="eyebrow" style="color:var(--win)">legal</span>`
+                 :`<span class="eyebrow" style="color:var(--loss)">blocked</span>`)}
+        <button class="tbtn" data-rp="${side}-${p.id}" style="padding:6px 9px;${p.present?"color:var(--win);border-color:rgba(127,224,166,.5)":"color:var(--gold);border-color:rgba(227,176,82,.5)"}">${p.present?"Here":"Out"}</button>
+      </div>`;
+    }).join("");
+  };
+
+  const matchList=T.lineup.map((m,idx)=>{
+    const A=rosterOf(0,m.pid[0]), B=rosterOf(1,m.pid[1]);
+    const r=m.done?matchResult(m):null;
+    const state=m.done?"done":(A&&B?"ready":"empty");
+    const right=r?`<span style="font-family:var(--data);font-weight:700;color:${r.ours>r.theirs?"var(--win)":"var(--loss)"}">${r.ours}&ndash;${r.theirs}</span>`
+      :(state==="ready"?`<span class="eyebrow" style="color:var(--gold)">ready</span>`:`<span class="eyebrow">set the lineup</span>`);
+    return `<button class="tbtn" data-ttab="${idx}" style="display:flex;width:100%;text-align:left;gap:10px;align-items:center;padding:11px;margin-bottom:7px;border-radius:9px">
+      <span style="font-family:var(--data);color:var(--mute);width:16px">${idx+1}</span>
+      <span style="flex:1;text-transform:none;letter-spacing:0;font-size:13.5px;color:var(--ivory)">
+        ${A?esc(A.name):"—"} <span style="color:var(--mute)">v</span> ${B?esc(B.name):"—"}${m.sd?' <span class="eyebrow">SD</span>':""}</span>
+      ${right}</button>`;
+  }).join("");
+
+  return header("Team night · "+TEAM_GAMES[T.game],true)+teamTabs()+`
+    <div class="pp">
+      ${[0,1].map(i=>`<div class="pl">
+        <div class="who">${esc(teamName(i))}</div>
+        <div class="sl">${tt.wins[i]} match win${tt.wins[i]===1?"":"s"}</div>
+        <div class="big">${i===0?tt.ours:tt.theirs}</div>
+      </div>`).join("")}
+    </div>
+
+    ${[0,1].map(i=>{const u=i===0?u0:u1; return `<div class="card" style="margin:14px 14px 0">
+      <div class="rbar" style="padding:0">
+        <span class="eyebrow">${esc(teamName(i))}</span>
+        <span>skill <b>${u.sl}</b>/${T.limit} &nbsp; senior <b>${u.sen}</b>/${T.seniorMax}</span></div>
+      <div style="height:6px;background:var(--ink);border-radius:3px;margin:8px 0 2px;overflow:hidden">
+        <div style="height:100%;width:${Math.min(100,u.sl/T.limit*100)}%;background:${u.sl>T.limit?"var(--loss)":"var(--chalk)"}"></div>
+      </div>
+      ${rosterRows(i)}
+      <div class="hint" style="margin-top:9px">Can still be thrown${firstOpen(i)>=0?" at match "+(firstOpen(i)+1):""}:
+        <b style="color:var(--ivory)">${throwsFor(i)}</b></div>
+    </div>`;}).join("")}
+
+    ${T.play==="tournament"?`<div class="card" style="margin:11px 14px 0">
+      <div class="rbar" style="padding:0">
+        <span>${onTable} points still on the table</span>
+        <button class="tbtn" id="sdCall" style="padding:6px 10px">${T.sdFrom!=null?"Sudden death on":"Call sudden death"}</button>
+      </div></div>`:""}
+
+    <div class="card" style="margin:14px"><h3>The five</h3>${matchList}</div>
+
+    <div style="display:flex;gap:9px;padding:0 14px 14px">
+      <button class="tbtn" id="tEdit" style="flex:1;padding:11px">Rosters &amp; setup</button>
+      <button class="tbtn warn" id="tNew" style="flex:1;padding:11px">New night</button>
+    </div>
+    <footer class="foot">
+      ${T.play==="weekly"?"Weekly play — all five matches, forfeits are "+FORFEIT.weekly[T.game]+"&ndash;0."
+        :"Tournament — forfeits are "+FORFEIT.tournament[T.game]+"&ndash;0."}
+      A player goes in once a night. Senior Skill Level is ${T.seniorFrom} and up, ${T.seniorMax} to a team match.
+      Someone who isn't at the venue still counts toward the ${T.limit}.
+      Unofficial helper &mdash; the paper scoresheet is what counts.
+    </footer>`;
+}
+
+function teamMatchTab(idx){
+  const m=T.lineup[idx];
+  const A=rosterOf(0,m.pid[0]), B=rosterOf(1,m.pid[1]);
+  const head=header("Match "+(idx+1)+" · "+TEAM_GAMES[T.game],true)+teamTabs();
+
+  /* Lineup first — the scorer opens once both sides are named. */
+  if(!A||!B||m.done||m.sd){
+    const pickerFor=side=>{
+      const taken=new Set(T.lineup.map(x=>x.pid[side]).filter(Boolean));
+      const opts=activeRoster(side).map(p=>{
+        if(taken.has(p.id)&&p.id!==m.pid[side]) return "";
+        const f=feasible(side,p,idx);
+        return `<option value="${p.id}"${m.pid[side]===p.id?" selected":""}${f.ok?"":" disabled"}>${esc(`${p.name} · SL ${p.sl}${p.present?"":" · out"}${f.ok?"":" — "+f.why}`)}</option>`;
+      }).join("");
+      return `<label class="f" style="margin:0"><span>${esc(teamName(side))}</span>
+        <select class="in" data-pick="${idx}-${side}" ${m.done?"disabled":""}><option value="">Choose…</option>${opts}</select></label>`;
+    };
+    const r=m.done?matchResult(m):null;
+    const goals=(A&&B&&!m.sd)?(isTPts()?[PTS_CHART[A.sl]||38,PTS_CHART[B.sl]||38]
+                                       :[apa8(A.sl,B.sl),apa8(B.sl,A.sl)]):null;
+    return head+`
+      <div class="card"><h3>Match ${idx+1}${m.sd?" · sudden death":""}</h3>
+        <div class="grid2">${pickerFor(0)}${pickerFor(1)}</div>
+        ${goals?`<div class="hint" style="margin-top:9px">Race ${goals[0]}&ndash;${goals[1]}</div>`:""}
+        ${m.sd?`
+          <div class="hint" style="margin:10px 0 7px">Rack one is worth 2, rack two is worth 1.</div>
+          ${m.done?"":`<div class="acts two" style="padding:0">
+            ${[0,1].map(i=>`<button class="big-btn" data-sdw="${idx}-${i}" style="padding:12px 8px;font-size:14px">${esc(teamName(i))}<small>won rack ${(m.racks||[]).length+1}</small></button>`).join("")}
+          </div>`}
+          ${(m.racks||[]).length?`<div class="hint" style="margin-top:8px">Racks: ${(m.racks||[]).map(x=>esc(teamName(x))).join(", ")}
+            ${m.done?"":`<button class="tbtn" data-sdundo="${idx}" style="padding:5px 9px;margin-left:6px">Undo rack</button>`}</div>`:""}
+        `:""}
+        ${r?`<div class="banner" style="margin:12px 0 0"><b>${r.ours}&ndash;${r.theirs}</b>
+              <div class="s">${esc(A?A.name:"—")} v ${esc(B?B.name:"—")}</div></div>
+            <button class="tbtn" data-reopen="${idx}" style="margin-top:11px;padding:10px 13px">Reopen</button>`
+          :(()=>{const rr=matchResult(m);
+             return rr?`<button class="go" data-close="${idx}" style="margin-top:11px">Record ${rr.ours}&ndash;${rr.theirs}</button>`
+               :(A&&B&&!m.sd?`<p class="hint">Both players are in — the scorer opens next.</p>`
+                            :`<p class="hint">Pick both players to start.</p>`);})()}
+      </div>`;
+  }
+
+  /* Both picked and live — hand over to the match engine. */
+  S=ensureMatchState(idx);
+  embedded=true;
+  return head+playView();
+}
+
+function wireTeams(){
+  const q=(sel,fn)=>document.querySelectorAll(sel).forEach(fn);
+
+  q("[data-ttab]",b=>b.onclick=()=>{
+    const v=b.dataset.ttab;
+    /* Named tabs stay strings — +"theory" is NaN, and NaN passes a
+       typeof === "number" check, which sent it looking for match NaN. */
+    T.tab = /^\d+$/.test(v) ? +v : v;
+    embedded=false; S=null; tsave(); render();
+  });
+
+  q("[data-tg]",b=>b.onclick=()=>{
+    const g=b.dataset.tg; if(g===T.game) return;
+    T=store.get(tkey(g),null)||blankTeam(g);
+    location.hash="/teams/"+g;
+  });
+  q("[data-tp]",b=>b.onclick=()=>{
+    T.play=b.dataset.tp;
+    if(T.play==="weekly"){ T.sdFrom=null; T.lineup.forEach(m=>{ if(!m.done){m.sd=false;m.racks=[];} }); }
+    tsave(); render();
+  });
+  q("[data-tn]",el=>el.oninput=e=>{ T.teams[+el.dataset.tn]=e.target.value; tsave(); });
+  q("[data-load]",el=>el.onchange=e=>{
+    const side=+el.dataset.load, nm=e.target.value;
+    if(!nm) return;
+    if(activeRoster(side).length){
+      ask("Replace this roster?","Loading "+nm+" clears the names and levels currently in these slots.",
+        ()=>{ loadRoster(side,nm); tsave(); render(); },"Load "+nm);
+      el.value="";
+    } else { loadRoster(side,nm); tsave(); render(); }
+  });
+  q("[data-save]",b=>b.onclick=()=>{
+    const side=+b.dataset.save;
+    if(!activeRoster(side).length){ ask("Nothing to save","Put at least one name in this roster first.",null,"OK"); return; }
+    const nm=(T.teams[side]||"").trim();
+    if(!nm){ ask("Name the team first","Saving uses the team name from the top of this page.",null,"OK"); return; }
+    const existing=getSaved(T.game).some(t=>t.name.toLowerCase()===nm.toLowerCase());
+    const go=()=>{ saveRoster(side); tsave(); render(); };
+    if(existing) ask("Update "+nm+"?","The saved roster and skill levels are replaced with what's on screen.",go,"Update");
+    else { go(); }
+  });
+
+  q("[data-rn]",el=>{
+    const [side,id]=el.dataset.rn.split("-");
+    el.oninput=e=>{ const p=rosterOf(+side,id); if(p){ p.name=e.target.value; tsave(); } };
+    el.onblur=()=>render();
+  });
+  q("[data-rs]",el=>{
+    const [side,id]=el.dataset.rs.split("-");
+    el.onchange=e=>{ const p=rosterOf(+side,id); if(p){ p.sl=+e.target.value; tsave(); render(); } };
+  });
+  q("[data-th]",b=>b.onclick=()=>{
+    const id=b.dataset.th, sd0=T.theorySide||0;
+    if(!Array.isArray(T.theory)) T.theory=[{out:[],lock:[]},{out:[],lock:[]}];
+    const cur=T.theory[sd0]=T.theory[sd0]||{out:[],lock:[]};
+    const o=new Set(cur.out), l=new Set(cur.lock);
+    if(l.has(id)){ l.delete(id); o.add(id); }          // locked -> out
+    else if(o.has(id)){ o.delete(id); }                 // out -> in
+    else { l.add(id); }                                 // in -> locked
+    T.theory[sd0]={out:[...o],lock:[...l]};
+    tsave(); render();
+  });
+  const thr=$("#thReset");
+  if(thr) thr.onclick=()=>{ T.theory[T.theorySide||0]={out:[],lock:[]}; tsave(); render(); };
+  q("[data-thside]",b=>b.onclick=()=>{ T.theorySide=+b.dataset.thside; tsave(); render(); });
+
+  q("[data-rp]",b=>b.onclick=()=>{
+    const [side,id]=b.dataset.rp.split("-");
+    const p=rosterOf(+side,id);
+    if(p&&p.name.trim()){ p.present=!p.present; tsave(); render(); }
+  });
+  q("[data-close]",b=>b.onclick=()=>{ T.lineup[+b.dataset.close].done=true; T.tab="team"; tsave(); render(); });
+  q("[data-reopen]",b=>b.onclick=()=>{ T.lineup[+b.dataset.reopen].done=false; tsave(); render(); });
+
+  q("[data-lim]",el=>el.onchange=e=>{ T.limit=Math.max(1,+e.target.value||23); tsave(); render(); });
+  q("[data-sf]",el=>el.onchange=e=>{ T.seniorFrom=Math.max(1,+e.target.value||6); tsave(); render(); });
+
+  const acc=$("#tAccept");
+  if(acc) acc.onclick=()=>{ T.rosterOk=true; T.stage="play"; T.tab="team"; tsave(); render(); };
+
+  q("[data-pick]",el=>el.onchange=e=>{
+    const [idx,side]=el.dataset.pick.split("-").map(Number);
+    T.lineup[idx].pid[side]=e.target.value||null;
+    /* Both sides named and it's a full race — drop straight into scoring. */
+    const m=T.lineup[idx];
+    if(m.pid[0]&&m.pid[1]&&!m.sd&&!m.done) T.tab=idx;
+    tsave(); render();
+  });
+  q("[data-ms]",el=>el.onchange=e=>{
+    const [i,k]=el.dataset.ms.split("-").map(Number);
+    T.lineup[i][k===0?"ours":"theirs"]=Math.max(0,+e.target.value||0); tsave(); render();
+  });
+  q("[data-sdw]",b=>b.onclick=()=>{
+    const [i,who]=b.dataset.sdw.split("-").map(Number);
+    const m=T.lineup[i]; m.racks=m.racks||[];
+    if(m.racks.length<2){ m.racks.push(who); tsave(); render(); }
+  });
+  q("[data-sdundo]",b=>b.onclick=()=>{ const m=T.lineup[+b.dataset.sdundo]; (m.racks||[]).pop(); tsave(); render(); });
+  const sd=$("#sdCall");
+  if(sd) sd.onclick=()=>{
+    if(T.sdFrom!=null){
+      ask("Turn sudden death off?","Matches not yet recorded go back to full races.",
+        ()=>{ T.sdFrom=null; T.lineup.forEach(m=>{ if(!m.done){ m.sd=false; m.racks=[]; } }); tsave(); render(); },"Turn off");
+      return;
+    }
+    const first=T.lineup.findIndex(m=>!m.done);
+    if(first<0){ ask("Nothing left","Every match is already recorded.",null,"OK"); return; }
+    ask("Call sudden death?","Match "+(first+1)+" onward becomes racks — two points for the first, one for the second. Recorded matches are untouched.",
+      ()=>{ T.sdFrom=first; T.lineup.forEach((m,i)=>{ if(!m.done&&i>=first){ m.sd=true; m.racks=[]; } }); tsave(); render(); },"Call it");
+  };
+
+  const ed=$("#tEdit"); if(ed) ed.onclick=()=>{ T.stage="setup"; tsave(); render(); };
+  const nn=$("#tNew"); if(nn) nn.onclick=()=>{
+    ask("Start a new night?","Clears every match and the running score. Both rosters stay.",
+      ()=>{ const keep=T.rosters.map(r=>r.map(p=>({...p})));
+        T=Object.assign(blankTeam(T.game),{play:T.play,limit:T.limit,seniorFrom:T.seniorFrom,
+          teams:[...T.teams],rosters:keep,stage:"play",rosterOk:true,tab:"team"});
+        for(let i=0;i<MATCHES;i++) store.del(teamMatchKey(i));
+        tsave(); render(); },"New night");
+  };
+}
+
+/* ============================================================
+   render + wiring
+   ============================================================ */
+function render(){
+  const app=$("#app");
+  const parts=location.hash.replace(/^#\/?/,"").split("/");
+  const fmt=parts[0], game=parts[1];
+  if(fmt==="teams"){
+    const g=TEAM_GAMES[game]?game:null;
+    if(!g){ S=null; T=null; app.innerHTML=landing(); wireLanding(); return; }
+    S=null; document.body.classList.remove("sd");
+    if(!T || T.game!==g) T=store.get(tkey(g),null)||blankTeam(g);
+    if(T.tab===undefined) T.tab="team";
+    /* Fresh night, empty roster, something saved — load the most recent so the
+       usual team is already there with last week's levels to adjust. */
+    if(!T.autoLoaded && T.stage==="setup" && !activeRoster(0).length){
+      const list=getSaved(g);
+      if(list.length){
+        const last=[...list].sort((a,b)=>(b.at||0)-(a.at||0))[0];
+        loadRoster(0,last.name);
+      }
+      T.autoLoaded=true; tsave();
+    }
+    embedded=false;
+    app.innerHTML = T.stage==="play" ? teamsPlay() : teamsSetup();
+    wireTeams();
+    if(embedded && S) wirePlay();
+    const hh=$("#homeBtn"); if(hh) hh.onclick=()=>{ location.hash=""; };
+    return;
+  }
+  if(!FORMATS[fmt] || !GAMES[game]){
+    S=null; document.body.classList.remove("sd");
+    app.innerHTML=landing(); wireLanding(); return;
+  }
+  if(!S || S.game!==game || S.format!==fmt) S = store.get(key(fmt,game),null) || blank(fmt,game);
+  if(S.mode==="league" && !GAMES[S.game].league) S.mode="detailed";
+  if(league()) S.breakRule="winner";
+  document.body.classList.toggle("sd", !!S.sd && S.stage==="play");
+  app.innerHTML = S.stage==="play" ? playView() : setupView();
+  S.stage==="play" ? wirePlay() : wireSetup();
+  const h=$("#homeBtn"); if(h) h.onclick=()=>{ location.hash=""; };
+  /* Ask once, on the way in, so league races fill as skill levels are entered. */
+  if(S.stage==="setup" && !S.modeChosen && !modeDlg.open) openModeDlg();
+}
+
+function wireLanding(){
+  document.querySelectorAll("[data-fmt]").forEach(b=>{
+    b.onclick=()=>{ landingFormat=b.dataset.fmt; store.set("chalkscore:format",landingFormat); render(); };
+  });
+  document.querySelectorAll(".tile").forEach(t=>{
+    if(t.dataset.tgame) t.onclick=()=>{ location.hash="/teams/"+t.dataset.tgame; };
+    else t.onclick=()=>{ location.hash="/"+landingFormat+"/"+t.dataset.g; };
+  });
+  document.querySelectorAll("[data-tclr]").forEach(b=>{
+    b.onclick=e=>{
+      e.stopPropagation();
+      const g=b.dataset.tclr;
+      ask("Clear the "+TEAM_GAMES[g]+" night?","Every match, the running score and the roster all go.",
+        ()=>{ store.del(tkey(g)); T=null; render(); },"Clear it");
+    };
+  });
+  document.querySelectorAll("[data-clr]").forEach(b=>{
+    b.onclick=e=>{
+      e.stopPropagation();
+      const g=b.dataset.clr, saved=store.get(key(landingFormat,g),null);
+      const who = saved && saved.stage==="play"
+        ? (saved.names[0][0]||"Player 1")+" vs "+(saved.names[1][0]||"Player 2") : "the saved setup";
+      ask("Clear "+GAMES[g].label+"?","Wipes "+who+" — the score, the racks and the counters all go.",
+        ()=>{ store.del(key(landingFormat,g)); render(); },"Clear it");
+    };
+  });
+}
+
+function wireSetup(){
+  document.querySelectorAll("[data-nm]").forEach(el=>{
+    const p=el.dataset.nm.split("-").map(Number);
+    el.oninput=e=>{ S.names[p[0]][p[1]]=e.target.value; save(); };
+  });
+  document.querySelectorAll("[data-sl]").forEach(el=>{
+    const p=el.dataset.sl.split("-").map(Number);
+    el.onchange=e=>{ S.sl[p[0]][p[1]]=Math.max(1,Math.min(9,+e.target.value||1)); syncLeagueRaces(); save(); render(); };
+  });
+  document.querySelectorAll("[data-goal]").forEach(el=>{
+    el.onchange=e=>{ S.goal[+el.dataset.goal]=Math.max(1,+e.target.value||1); save(); };
+  });
+  document.querySelectorAll("[data-mode]").forEach(b=>{
+    b.onclick=()=>{ S.mode=b.dataset.mode; S.modeChosen=true;
+      if(league()) S.breakRule="winner"; syncLeagueRaces(); save(); render(); };
+  });
+  document.querySelectorAll("[data-brk]").forEach(b=>{
+    b.onclick=()=>{ if(league()) return; S.breakRule=b.dataset.brk; save(); render(); };
+  });
+  document.querySelectorAll("[data-first]").forEach(b=>{
+    b.onclick=()=>{ S.firstBreaker=+b.dataset.first; S.turn=S.firstBreaker; save(); render(); };
+  });
+  const sd=$("#sdBtn"); if(sd) sd.onclick=()=>{ S.sd=!S.sd; save(); render(); };
+  const hint=$("#modeHint");
+  if(hint) hint.textContent = S.mode==="simplified"
+    ? "The score and who breaks next. Nothing else to tap."
+    : S.mode==="detailed"
+      ? (isPts()?"Adds innings, defensive shots and points on the break."
+                :"Adds innings, defensive shots"+(S.game==="8ball"?" and how each game ended.":"."))
+      : (isPts()?"Adds innings, defensive shots, break points and APA match points."
+                :"Adds innings, defensive shots, how each game ended and match points.");
+  const fill=$("#fillBtn"); if(fill) fill.onclick=()=>{ S.goal=chartRaces(); save(); render(); };
+  $("#startBtn").onclick=()=>{ S.stage="play"; S.turn=S.firstBreaker; S.started=Date.now(); save(); render(); };
+}
+
+function wirePlay(){
+  document.querySelectorAll("[data-won]").forEach(b=>{
+    b.onclick=()=>{
+      snapshot(shortNm(+b.dataset.won)+" won "+(S.game==="8ball"?"the game":"the rack"));
+      S.log.push({w:+b.dataset.won, inn:S.rackInnings});
+      S.rackInnings=0; S.rackTurns=0; S.turn=breakerAt(S.log.length);
+      save(); render();
+    };
+  });
+  const over=$("#overBtn"); if(over) over.onclick=openOver;
+  const rec=$("#tRecord"); if(rec) rec.onclick=recordTeamMatch;
+  const miss=$("#missBtn"); if(miss) miss.onclick=()=>{ snapshot("miss — table to "+shortNm(1-S.turn)); passTable(); save(); render(); };
+  const ob=$("#onBreakBtn"); if(ob) ob.onclick=()=>{ snapshot("break shot closed"); S.onBreak=false; save(); render(); };
+
+  document.querySelectorAll(".ball").forEach(el=>{
+    el.onclick=()=>tapBall(+el.dataset.ball);
+    const b=+el.dataset.ball, o=S.owners[b], tag=el.querySelector(".tag");
+    if(o===undefined){ el.removeAttribute("data-o"); tag.textContent=""; }
+    else { el.dataset.o=o; tag.textContent = o==="d" ? "dead" : shortNm(o-1)+" +"+ptsFor(b); }
+  });
+
+  const nr=$("#newRack");
+  if(nr) nr.onclick=()=>{
+    const t=rackTotals(); if(t.left!==0) return;
+    snapshot("rack "+(S.log.length+1)+" closed");
+    const f=rackFlags();
+    if(detailed()){
+      if(f.snap) S.stats.snap[f.who]++;
+      if(f.bnr)  S.stats.bnr[f.who]++;
+      if(f.bp>(S.stats.bestBreak[f.who]||0)) S.stats.bestBreak[f.who]=f.bp;
+    }
+    /* Whoever potted the 9 won the rack. Without this the break rotation has
+       nothing to read and winner-breaks falls back to whoever broke first. */
+    const nine=S.owners[9];
+    const rackW=(nine===1||nine===2) ? nine-1 : S.turn;
+    S.log.push({w:rackW, p1:t.a,p2:t.b,dead:t.d,inn:S.rackInnings,
+                snap:detailed()&&f.snap, bnr:detailed()&&f.bnr, bp:detailed()?f.bp:0});
+    S.owners={}; S.autoDead=[]; S.rackInnings=0; S.rackTurns=0;
+    S.onBreak=true; S.breakBalls=[];
+    S.turn=breakerAt(S.log.length);
+    save(); render();
+  };
+
+  document.querySelectorAll(".pm button").forEach(b=>{
+    b.onclick=()=>{
+      const c=b.dataset.c, v=+b.dataset.v;
+      snapshot((c==="inn"?"innings":shortNm(+c.slice(3))+" defence")+" "+(v>0?"+1":"-1"));
+      if(c==="inn")  S.rackInnings=Math.max(0,S.rackInnings+v);
+      if(c==="def0") S.defense[0]=Math.max(0,S.defense[0]+v);
+      if(c==="def1") S.defense[1]=Math.max(0,S.defense[1]+v);
+      save(); render();
+    };
+  });
+  $("#undoBtn").onclick=openUndo;
+  const ed2=$("#editBtn"); if(ed2) ed2.onclick=()=>{ S.stage="setup"; save(); render(); };
+  const nb=$("#newBtn"); if(nb) nb.onclick=()=>{
+    ask("Start a new match?","Clears the score, the racks and the counters. Names, races, mode and break rule are kept.",
+      ()=>{ snapshot("new match");
+        S=Object.assign(blank(S.format,S.game),{
+          mode:S.mode, stage:"play", names:S.names.map(a=>a.slice()), sl:S.sl.map(a=>a.slice()),
+          goal:[...S.goal], breakRule:S.breakRule, firstBreaker:S.firstBreaker, sd:S.sd,
+          modeChosen:true, turn:S.firstBreaker });
+        save(); render();
+      },"New match");
+  };
+}
+
+function tapBall(b){
+  if(winnerIdx()>=0) return;
+  const cur=S.owners[b];
+  snapshot(cur===undefined ? "ball "+b+" to "+shortNm(S.turn)
+          : (cur==="d" ? "ball "+b+" cleared" : "ball "+b+" dead"));
+  if(cur===undefined){
+    S.owners[b]=S.turn+1;
+    if(detailed() && S.onBreak && S.turn===curBreaker() && !S.breakBalls.includes(b)) S.breakBalls.push(b);
+    if(b===9){ S.autoDead=[]; for(let n=1;n<=9;n++) if(S.owners[n]===undefined){ S.owners[n]="d"; S.autoDead.push(n); } }
+  } else if(cur===1||cur===2){
+    if(b===9){ (S.autoDead||[]).forEach(n=>{ if(S.owners[n]==="d") delete S.owners[n]; }); S.autoDead=[]; }
+    S.owners[b]="d";
+    S.breakBalls=S.breakBalls.filter(x=>x!==b);
+  } else {
+    delete S.owners[b];
+    S.breakBalls=S.breakBalls.filter(x=>x!==b);
+  }
+  save(); render();
+}
+
+window.addEventListener("hashchange",()=>{ history=[]; render(); });
+render();
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "ChalkScore",
+  "short_name": "ChalkScore",
+  "description": "Pool scorekeeping — 8-ball, 9-ball and 10-ball, singles, doubles and APA team nights",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A2418",
+  "theme_color": "#0A2418",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
