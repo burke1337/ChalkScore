@@ -2,7 +2,7 @@
    One self-contained page, so there is very little to cache.
    Bump CACHE when you publish a new build. */
 
-const CACHE = "chalkscore-v1";
+const CACHE = "chalkscore-v2";
 const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", (e) => {
